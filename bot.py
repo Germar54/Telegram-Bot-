@@ -1,5 +1,6 @@
 import logging
 import sqlite3
+import os 
 from flask import Flask
 from threading import Thread
 from aiogram import Bot, Dispatcher, executor, types
@@ -10,8 +11,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 # ==========================================
 # ১. সেটিংস ও ডাটাবেস
 # ==========================================
-API_TOKEN = '8738793331:AAFgPq769kEeUUnUf2X1nkHjYSGE2cbohU4'
-ADMIN_ID = 8474225355
+API_TOKEN = os.getenv('BOT_TOKEN')
+ADMIN_ID = int(os.getenv('ADMIN_ID'))
 
 app = Flask('')
 @app.route('/')
