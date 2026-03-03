@@ -5,8 +5,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from datetime import datetime
 
 # --- সেটিংস ---
-API_TOKEN = 'YOUR_BOT_TOKEN_HERE'  # এখানে আপনার বট টোকেন দিন
-ADMIN_ID = 123456789  # এখানে আপনার নিজের টেলিগ্রাম আইডি দিন (সংখ্যায়)
+API_TOKEN = '8738793331:AAFgPq769kEeUUnUf2X1nkHjYSGE2cbohU4'  # এখানে আপনার বট টোকেন দিন
+ADMIN_ID = 8474225355  # এখানে আপনার নিজের টেলিগ্রাম আইডি দিন (সংখ্যায়)
 
 # লগিং সেটআপ
 logging.basicConfig(level=logging.INFO)
