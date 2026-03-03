@@ -40,7 +40,7 @@ class BotState(StatesGroup):
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Work start 🔥", "Withdraw💸")
+    keyboard.add("Work start 🔥", "Withdraw")
     return keyboard
 
 @dp.message_handler(commands=['start'])
