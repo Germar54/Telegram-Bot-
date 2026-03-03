@@ -43,11 +43,13 @@ def main_menu():
     keyboard.add("Work start 🔥", "Withdraw")
     return keyboard
 
-@dp.message_handler(commands=['start'])
-async def start(message: types.Message):
+# /start কমান্ডে মেইন মেনুতে ফিরে আসার লজিক
+@dp.message_handler(commands=['start'], state="*")
+async def start(message: types.Message, state: FSMContext):
+    await state.finish() # সব স্টেট ক্লিয়ার করে মেইন মেনুতে নিয়ে যাবে
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
-    await message.answer("বটে স্বাগতম! নিচে থেকে একটি অপশন বেছে নিন। Price update & Rule:https://t.me/instafbhub/19", reply_markup=main_menu())
+    await message.answer("মেইন মেনুতে ফিরে আসা হয়েছে। একটি অপশন বেছে নিন। প্রাইস এবং রুলস জানতে : https://t.me/instafbhub ", reply_markup=main_menu())
 
 # ==========================================
 # ২. ওয়ার্ক স্টার্ট লজিক (Work Start)
@@ -56,11 +58,11 @@ async def start(message: types.Message):
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer("আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
+    await message.answer("যেকোনো সমস্যাই :@Dinanhaji । আমাদের গ্রুপে জয়েন হয়ে নেন প্রাইস এবং রুলস জানতে :https://t.me/instafbhub      আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
-    await message.answer("আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
+    await message.answer("আপনার এক্সেল ফাইলটি (Excel File) পাঠান। প্রাইস এবং রুলস আপডেট জানতে :https://t.me/instafbhub")
     await BotState.waiting_for_file.set()
 
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
@@ -72,7 +74,7 @@ async def handle_file(message: types.Message, state: FSMContext):
                            caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: `{message.from_user.id}`", 
                            reply_markup=keyboard, parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে। ততক্ষনে আরো আইডি ক্রিয়েট করে পাঠিয়ে দেন।", reply_markup=main_menu())
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!", reply_markup=main_menu())
     await state.finish()
 
 # ==========================================
@@ -85,7 +87,7 @@ async def withdraw_process(message: types.Message):
     balance, address = res[0], res[1]
 
     if not address:
-        await message.answer("আপনার পেমেন্ট মেথড দিন (যেমন: বিকাশ/নগদ/Binance/Roket নম্বর) মনে রাখবেন ভুল নাম্বার দিলে এডমিন দায়ী নয়:")
+        await message.answer("আপনার পেমেন্ট মেথড দিন (যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস) মেথড পাঠানোর ফরমেট: Bikash :01789***** Nagad :0197976*** Binance : 0givkbgbj****")
         await BotState.waiting_for_address.set()
     else:
         keyboard = types.InlineKeyboardMarkup()
@@ -94,7 +96,6 @@ async def withdraw_process(message: types.Message):
         await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অথবা নিচে থেকে মেথড পরিবর্তন করুন):", reply_markup=keyboard)
         await BotState.waiting_for_withdraw_amount.set()
 
-# মেথড চেঞ্জ করার বাটন হ্যান্ডলার
 @dp.callback_query_handler(text="change_method", state="*")
 async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
@@ -106,7 +107,7 @@ async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
 async def save_address(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
-    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে: {message.text}\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
+    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
     await state.finish()
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
@@ -178,7 +179,7 @@ async def final_add_money(message: types.Message, state: FSMContext):
             uid = data['target_id']
             cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, uid))
             db.commit()
-            await bot.send_message(uid, f"✅ এডমিন আপনার একাউন্টে {amount} ৳ যোগ করেছে।")
+            await bot.send_message(uid, f"✅আপনার একাউন্টে {amount} ৳ যোগ করেছে।")
             await message.answer(f"✅ {amount} ৳ সফলভাবে যোগ করা হয়েছে।")
         except: await message.answer("❌ ভুল ইনপুট।")
         await state.finish()
@@ -189,4 +190,3 @@ async def final_add_money(message: types.Message, state: FSMContext):
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
-    
