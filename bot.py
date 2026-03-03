@@ -1,4 +1,26 @@
-import logging
+from flask 
+import Flask
+from threading 
+import Thread
+
+app = Flask('')
+
+@app.route('/')
+def home():
+    return "I am alive!"
+
+def run():
+  app.run(host='0.0.0.0', port=8080)
+
+def keep_alive():
+    t = Thread(target=run)
+    t.start()
+
+# মূল ফাংশনের ভেতরে এটি কল করুন
+if __name__ == '__main__':
+    keep_alive()  # এটি বটকে ২৪ ঘণ্টা জাগিয়ে রাখতে সাহায্য করবে
+    executor.start_polling(dp, skip_updates=True)
+  import logging
 import sqlite3
 from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
