@@ -7,8 +7,9 @@ from aiogram import Bot, Dispatcher, executor, types
 from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 # --- সেটিংস ---
-API_TOKEN = 'YOUR_BOT_TOKEN_HERE' # আপনার টোকেন দিন
-ADMIN_ID = 123456789 # আপনার আইডি দিন
+API_TOKEN = '8738793331:AAFgPq769kEeUUnUf2X1nkHjYSGE2cbohU4' # আপনার টোকেন দিন
+ADMIN_ID = 8474225355
+# আপনার আইডি দিন
 
 # Flask সার্ভার (বট ২৪ ঘণ্টা চালু রাখতে)
 app = Flask('')
