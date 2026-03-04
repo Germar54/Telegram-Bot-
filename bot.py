@@ -96,7 +96,7 @@ async def start(message: types.Message, state: FSMContext):
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer(👍"যেকোনো সমস্যাই :@Dinanhaji !/n 🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
+    await message.answer("👍যেকোনো সমস্যাই :@Dinanhaji ! /n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
