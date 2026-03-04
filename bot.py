@@ -90,18 +90,23 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
 # ==========================================
-# ২. ওয়ার্ক স্টার্ট লজিক (Work Start)
-# ==========================================
-@dp.message_handler(lambda message: message.text == "Work start 🔥")
-async def work_start(message: types.Message):
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer("👍যেকোনো সমস্যাই :@Dinanhaji ! \n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
-
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
     await message.answer("📤আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
     await BotState.waiting_for_file.set()
+@dp.message_handler(lambda message: message.text == "Work start 🔥")
+async def work_start(message: types.Message):
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    # বাটনগুলো সাজানো
+    keyboard.add("IG Mother Account", "IG 2fa")
+    keyboard.add("🔄 রিফ্রেশ") 
+    
+    msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
+    await message.answer(msg, reply_markup=keyboard)
+    @dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ")
+async def refresh_to_main(message: types.Message):
+    # এই লাইনটি ইউজারকে মেইন মেনু (Work Start/Withdraw) বাটনে ফিরিয়ে নিবে
+    await message.answer("✅আপনি মেইন মেনুতে ফিরে এসেছেন।", reply_markup=main_menu())
 
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
 async def handle_file(message: types.Message, state: FSMContext):
@@ -125,7 +130,7 @@ async def withdraw_process(message: types.Message):
     balance, address = res[0], res[1]
 
     if not address:
-        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n✅ Bikash :01789*****/n Nagad :0197976***\n Binance : 0givkbgbj****")
+        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n🟢 Bikash :01789*****\n 🟢Nagad :0197976***\n 🟢Binance : 0givkbgbj****")
         await BotState.waiting_for_address.set()
     else:
         keyboard = types.InlineKeyboardMarkup()
