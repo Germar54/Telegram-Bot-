@@ -54,7 +54,7 @@ async def start(message: types.Message, state: FSMContext):
     inline_kb = types.InlineKeyboardMarkup()
     
     # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
-    url_button = types.InlineKeyboardButton(text="ফ্রী ফায়ার 🔥", url="https://t.me/instafbhub") 
+    url_button = types.InlineKeyboardButton(text="Latest update and Method", url="https://t.me/instafbhub") 
     inline_kb.add(url_button)
 
     # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
@@ -96,7 +96,7 @@ async def start(message: types.Message, state: FSMContext):
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer("যেকোনো সমস্যাই :@Dinanhaji । আমাদের গ্রুপে জয়েন হয়ে নেন প্রাইস এবং রুলস জানতে :https://t.me/instafbhub      আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
+    await message.answer("যেকোনো সমস্যাই :@Dinanhaji !/n 🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
@@ -112,7 +112,7 @@ async def handle_file(message: types.Message, state: FSMContext):
                            caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: `{message.from_user.id}`", 
                            reply_markup=keyboard, parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!", reply_markup=main_menu())
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। /nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
     await state.finish()
 
 # ==========================================
