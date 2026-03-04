@@ -43,14 +43,30 @@ def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
     return keyboard
-
-# /start কমান্ডে মেইন মেনুতে ফিরে আসার লজিক
+# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
-    await state.finish() # সব স্টেট ক্লিয়ার করে মেইন মেনুতে নিয়ে যাবে
+    await state.finish() 
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
-    await message.answer("মেইন মেনুতে ফিরে আসা হয়েছে। একটি অপশন বেছে নিন। প্রাইস এবং রুলস জানতে : https://t.me/instafbhub ", reply_markup=main_menu())
+
+    # ১. এখানে বাটন তৈরি হচ্ছে
+    inline_kb = types.InlineKeyboardMarkup()
+    
+    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
+    url_button = types.InlineKeyboardButton(text="All Method And Update", url="https://t.me/your_group_link") 
+    inline_kb.add(url_button)
+
+    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
+    welcome_text = "যদদৎ\n্যধৃ\n\nবটে স্বাগতম! নিচের বাটনে ক্লিক করুন।"
+    
+    # ৩. মেসেজ পাঠানো হচ্ছে (বাটনসহ)
+    await message.answer(welcome_text, reply_markup=inline_kb)
+    
+    # ৪. মেইন মেনু (Work Start/Withdraw) দেখানো
+    await message.answer("📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢\n**নিচের পয়েন্টগুলো মনোযোগ দিয়ে পড়ুন এবং নিয়ম মেনে কাজ সাবমিট করুন।**\n\n📌 `**পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)**\n\n💸 **প্রাইস:** প্রতি পিস ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)\n\n⚠️ **নিয়ম:** * 🚫 Resell ID Not Allowed.\n\n❌ **পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।**\n\n📄 **শীট ফরম্যাট:** User-pass-2fa\n\n⏰ **আইডি সাবমিট লাস্ট টাইম:** রাত ০৮:১৫ মিনিট।`\n\n`📌 **পয়েন্ট ২: 📸 Instagram Cookies 00 Follower**\n\n💸 **প্রাইস:** প্রতি পিস ৩.৯০ টাকা (১০০+ হলে ৪.১০ টাকা)\n\n⚠️ **নিয়ম:** * ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n\n.⏳ **২০ মিনিট পার হয়ে গেলে সাবমিট নেওয়া হবে না।**\n\n📄 **শীট ফরম্যাট:** User-pass\n\n⏰ **ফাইল সাবমিট লাস্ট টাইম:** সকাল ১০:৩০ মিনিট।`\n\n`📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA) [V. Important]**\n\n💸 **প্রাইস:** প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)\n\n⚠️ **নিয়ম:** * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।\n\n⏰ **আইডি সাবমিট লাস্ট টাইম:** যেকোনো সময় (Anytime)।`\n\n|📌 **পয়েন্ট ৪: 🔵 Facebook (FBc00Fnd 2fa)**\n\n💸 **প্রাইস:** প্রতি পিস ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n\n⚠️ **নিয়ম:** * ❌ **পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।**\n\n⏰ **আইডি সাবমিট লাস্ট টাইম:** রাত ১০:০০ মিনিট।|`\n\n**✅ সবাই নিয়ম মেনে সঠিক সময়ে কাজ জমা দিন। ধন্যবাদ!**\n\n**Support:** @Dinanhaji
+    ", reply_markup=main_menu())
+                    
 
 # ==========================================
 # ২. ওয়ার্ক স্টার্ট লজিক (Work Start)
