@@ -54,26 +54,35 @@ async def start(message: types.Message, state: FSMContext):
     inline_kb = types.InlineKeyboardMarkup()
     
     # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
-    url_button = types.InlineKeyboardButton(text="All Method And Update", url="https://t.me/your_group_link") 
+    url_button = types.InlineKeyboardButton(text="ফ্রী ফায়ার 🔥", url="https://t.me/instafbhub") 
     inline_kb.add(url_button)
-    # ২. এখানে প্রতিটি পয়েন্টকে Quote (<blockquote>) ট্যাগ দিয়ে সাজানো হয়েছে
-    welcome_text = (
-        "📢 <b>আজকের কাজের আপডেট এবং রেট লিস্ট</b> 📢\n"
-        "নিচের পয়েন্টগুলো মনোযোগ দিয়ে পড়ুন।\n\n"
-        "<blockquote>📌 <b>পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)</b>\n"
-        "💸 <b>প্রাইস:</b> প্রতি পিস <code>২.৩০</code> টাকা\n"
-        "📄 <b>শীট ফরম্যাট:</b> <code>User-pass-2fa</code></blockquote>\n\n"
-        "<blockquote>📌 <b>পয়েন্ট ২: 📸 Instagram Cookies 00 Follower</b>\n"
-        "💸 <b>প্রাইস:</b> প্রতি পিস <code>৩.৯০</code> টাকা\n"
-        "📄 <b>শীট ফরম্যাট:</b> <code>User-pass</code></blockquote>\n\n"
-        "<blockquote>📌 <b>পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)</b>\n"
-        "💸 <b>প্রাইস:</b> প্রতি পিস <code>৮</code> টাকা\n"
-        "⏰ <b>টাইম:</b> <code>Anytime</code></blockquote>\n\n"
-        "<blockquote>📌 <b>পয়েন্ট ৪: 🔵 Facebook (FBc00Fnd 2fa)</b>\n"
-        "💸 <b>প্রাইস:</b> প্রতি পিস <code>৫.৮০</code> টাকা\n"
-        "⏰ <b>টাইম:</b> রাত <code>১০:০০</code> মিনিট।</blockquote>\n\n"
-        "✅ সবাই নিয়ম মেনে সঠিক সময়ে কাজ জমা দিন।\n"
-        "<b>Support:</b> <code>@Dinanhaji</code>")
+
+    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
+        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
+    welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
+নিচের পয়েন্টগুলো মনোযোগ দিয়ে পড়ুন।
+
+📌 **`পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)`**
+💸 **প্রাইস:** প্রতি পিস **`২.৩০`** টাকা (১০০+ হলে **`২.৫০`** টাকা)
+📄 **শীট ফরম্যাট:** **`User-pass-2fa`**
+⏰ **টাইম:** রাত **`০৮:১৫`** মিনিট।
+
+📌 **`পয়েন্ট ২: 📸 Instagram Cookies 00 Follower`**
+💸 **প্রাইস:** প্রতি পিস **`৩.৯০`** টাকা (১০০+ হলে **`৪.১০`** টাকা)
+📄 **শীট ফরম্যাট:** **`User-pass`**
+⏰ **টাইম:** সকাল **`১০:৩০`** মিনিট।
+
+📌 **`পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)`**
+💸 **প্রাইস:** প্রতি পিস **`৮`** টাকা (৫০+ হলে **`৯`** টাকা)
+⏰ **টাইম:** **`Anytime`**
+
+📌 **`পয়েন্ট ৪: 🔵 Facebook (FBc00Fnd 2fa)`**
+💸 **প্রাইস:** প্রতি পিস **`৫.৮০`** টাকা (৫০+ হলে **`৬`** টাকা)
+⏰ **টাইম:** রাত **`১০:০০`** PM।
+
+✅ সবাই নিয়ম মেনে সঠিক সময়ে কাজ জমা দিন।
+**Support:** @Dinanhaji"""
+
     # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
