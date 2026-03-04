@@ -96,7 +96,7 @@ async def start(message: types.Message, state: FSMContext):
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer("👍যেকোনো সমস্যাই :@Dinanhaji ! /n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
+    await message.answer("👍যেকোনো সমস্যাই :@Dinanhaji ! \n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
@@ -112,7 +112,7 @@ async def handle_file(message: types.Message, state: FSMContext):
                            caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: **`{message.from_user.id}`**", 
                            reply_markup=keyboard, parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। /nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
     await state.finish()
 
 # ==========================================
@@ -125,7 +125,7 @@ async def withdraw_process(message: types.Message):
     balance, address = res[0], res[1]
 
     if not address:
-        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।/n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)/n👀 মেথড পাঠানোর ফরমেট: /n✅ Bikash :01789*****/n Nagad :0197976***/n Binance : 0givkbgbj****")
+        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n✅ Bikash :01789*****/n Nagad :0197976***\n Binance : 0givkbgbj****")
         await BotState.waiting_for_address.set()
     else:
         keyboard = types.InlineKeyboardMarkup()
