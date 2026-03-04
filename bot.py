@@ -96,11 +96,11 @@ async def start(message: types.Message, state: FSMContext):
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
-    await message.answer("যেকোনো সমস্যাই :@Dinanhaji !/n 🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
+    await message.answer(👍"যেকোনো সমস্যাই :@Dinanhaji !/n 🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=keyboard)
 
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_file(message: types.Message):
-    await message.answer("আপনার এক্সেল ফাইলটি (Excel File) পাঠান। প্রাইস এবং রুলস আপডেট জানতে :https://t.me/instafbhub")
+    await message.answer("📤আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
     await BotState.waiting_for_file.set()
 
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
@@ -109,7 +109,7 @@ async def handle_file(message: types.Message, state: FSMContext):
     keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data=f"adminadd_{message.from_user.id}"))
     
     await bot.send_document(ADMIN_ID, message.document.file_id, 
-                           caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: `{message.from_user.id}`", 
+                           caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: **`{message.from_user.id}`**", 
                            reply_markup=keyboard, parse_mode="Markdown")
     
     await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। /nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
@@ -125,13 +125,13 @@ async def withdraw_process(message: types.Message):
     balance, address = res[0], res[1]
 
     if not address:
-        await message.answer("আপনার পেমেন্ট মেথড দিন (যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস) মেথড পাঠানোর ফরমেট: Bikash :01789***** Nagad :0197976*** Binance : 0givkbgbj****")
+        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।/n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)/n👀 মেথড পাঠানোর ফরমেট: /n✅ Bikash :01789*****/n Nagad :0197976***/n Binance : 0givkbgbj****")
         await BotState.waiting_for_address.set()
     else:
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
         
-        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অথবা নিচে থেকে মেথড পরিবর্তন করুন):", reply_markup=keyboard)
+        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
         await BotState.waiting_for_withdraw_amount.set()
 
 @dp.callback_query_handler(text="change_method", state="*")
