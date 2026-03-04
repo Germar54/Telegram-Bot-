@@ -38,6 +38,11 @@ class BotState(StatesGroup):
     waiting_for_address = State()
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
+    waiting_for_add_money = State()
+    # নিচে এই ৩টি লাইন লিখে দিন
+    waiting_for_single_user = State()
+    waiting_for_single_pass = State()
+    waiting_for_single_2fa = State()
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -90,10 +95,17 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
 # ==========================================
-@dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
-async def ask_file(message: types.Message):
-    await message.answer("📤আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
-    await BotState.waiting_for_file.set()
+ @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
+async def ask_work_type(message: types.Message, state: FSMContext):
+    # ইউজার কোন ক্যাটাগরি সিলেক্ট করেছে তা মনে রাখা
+    await state.update_data(category=message.text)
+    
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb.add(types.InlineKeyboardButton("🗃️ File", callback_data="type_file"))
+    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
+    
+    await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
+    
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -102,7 +114,47 @@ async def work_start(message: types.Message):
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=keyboard)
+# --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
+@dp.callback_query_handler(lambda c: c.data.startswith('type_'), state="*")
+async def process_callback_work_type(callback_query: types.CallbackQuery):
+    if callback_query.data == "type_file":
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
+        await BotState.waiting_for_file.set()
+    elif callback_query.data == "type_single":
+        await bot.answer_callback_query(callback_query.id)
+        await bot.send_message(callback_query.from_user.id, "👤 আপনার ইউজার আইডি (User ID) দিন:")
+        await BotState.waiting_for_single_user.set()
 
+# --- সিঙ্গেল আইডির তথ্য এক এক করে নেওয়ার হ্যান্ডলার ---
+@dp.message_handler(state=BotState.waiting_for_single_user)
+async def get_id(message: types.Message, state: FSMContext):
+    await state.update_data(u_id=message.text)
+    await message.answer("🔑 এবার পাসওয়ার্ড (Password) দিন:")
+    await BotState.waiting_for_single_pass.set()
+
+@dp.message_handler(state=BotState.waiting_for_single_pass)
+async def get_pass(message: types.Message, state: FSMContext):
+    await state.update_data(u_pass=message.text)
+    await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
+    await BotState.waiting_for_single_2fa.set()
+
+@dp.message_handler(state=BotState.waiting_for_single_2fa)
+async def get_2fa(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    # এডমিন প্যানেলে বিস্তারিত রিপোর্ট পাঠানো
+    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
+                 f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
+                 f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
+                 f"━━━━━━━━━━━━━━━\n"
+                 f"🆔 **ID:** `{data.get('u_id')}`\n"
+                 f"🔑 **Pass:** `{data.get('u_pass')}`\n"
+                 f"🔐 **2FA:** `{message.text}`")
+    
+    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+    await message.answer("✅ আপনার তথ্যগুলো সফলভাবে জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে।", reply_markup=main_menu())
+    await state.finish()
+    
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
 @dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
 async def refresh_to_main(message: types.Message, state: FSMContext):
