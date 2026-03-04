@@ -94,10 +94,10 @@ async def start(message: types.Message, state: FSMContext):
     # ৪. মেইন মেনু দেখানো
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
-# ==========================================
- @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
+# =========================================
+@dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_work_type(message: types.Message, state: FSMContext):
-    # ইউজার কোন ক্যাটাগরি সিলেক্ট করেছে তা মনে রাখা
+    # এই লাইনগুলো বাম দিক থেকে ৪টি স্পেস ডানে থাকবে
     await state.update_data(category=message.text)
     
     inline_kb = types.InlineKeyboardMarkup()
