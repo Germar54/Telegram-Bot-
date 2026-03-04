@@ -97,23 +97,19 @@ async def ask_file(message: types.Message):
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # বাটনগুলো সাজানো
     keyboard.add("IG Mother Account", "IG 2fa")
     keyboard.add("🔄 রিফ্রেশ") 
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=keyboard)
-        # ৯৯ থেকে ১০৫ লাইনের কাজ শেষ হওয়ার পর
-    await message.answer(msg, reply_markup=keyboard)
 
-# ১০৬ নম্বর লাইনে কোনো ফাংশনের ভেতরে না, একদম বাম দিক থেকে শুরু করবেন
-@dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ")
-async def refresh_to_main(message: types.Message):
-    # এই লাইনটি মেইন মেনুতে ফিরিয়ে নিবে
+# ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
+@dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
+async def refresh_to_main(message: types.Message, state: FSMContext):
+    # ইউজার যদি ফাইল দেওয়ার স্টেটে থাকে তবে তা ক্লিয়ার করবে
+    await state.finish() 
+    # মেইন মেনুতে ফিরিয়ে নিবে
     await message.answer("✅ আপনি মেইন মেনুতে ফিরে এসেছেন।", reply_markup=main_menu())
-
-# এরপর ১১১ নম্বর লাইনে আপনার পরবর্তী হ্যান্ডলার শুরু হবে
-@dp.message_handler(content_types=['document'])
     
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
 async def handle_file(message: types.Message, state: FSMContext):
