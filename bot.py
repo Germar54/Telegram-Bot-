@@ -148,23 +148,29 @@ async def get_pass(message: types.Message, state: FSMContext):
     await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
     await BotState.waiting_for_single_2fa.set()
 
-@dp.message_handler(state=BotState.waiting_for_single_2fa)
-async def get_2fa(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    # এডমিন প্যানেলে বিস্তারিত রিপোর্ট পাঠানো
-    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
-                 f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
-                 f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
-                 f"━━━━━━━━━━━━━━━\n"
-                 f"🆔 **ID:** `{data.get('u_id')}`\n"
-                 f"🔑 **Pass:** `{data.get('u_pass')}`\n"
-                 f"🔐 **2FA:** `{message.text}`")
+    # ৬. প্রথম বটের অ্যাডমিনকে জানানো ও শেষ করা
+    await bot.send_message(ADMIN_ID, admin_panel_msg, reply_markup=control_keyboard, parse_mode="Markdown")
+    await message.answer(f"✅ আপনার তথ্য জমা হয়েছে। বর্তমান ব্যালেন্স: {current_balance} টাকা।")
+    await state.finish()
+    # ১. প্রথম বটের জন্য বিস্তারিত ডাটা (ID/Pass/2FA)
+    admin_msg = (
+        f"🚀 **নতুন আইডি জমা পড়েছে!**\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"👤 **ইউজার:** {message.from_user.mention}\n"
+        f"🆔 **ইউজার আইডি:** `{message.from_user.id}`\n"
+        f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
+        f"━━━━━━━━━━━━━━━━━━\n"
+        f"🆔 **ID:** `{data.get('u_id')}`\n"
+        f"🔑 **Pass:** `{data.get('u_pass')}`\n"
+        f"🔐 **2FA:** `{message.text}`\n"
+        f"━━━━━━━━━━━━━━━━━━"
+    )
+
     import datetime
     import json
-    import aiohttp
     today = datetime.date.today().strftime("%Y-%m-%d")
 
-    # ১. ডাটাবেস আপডেট (Main Bot)
+    # ২. ডাটাবেস আপডেট ও ইউজারের কাজ গণনা
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     
@@ -173,32 +179,36 @@ async def get_2fa(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
     db.commit()
 
-    # ২. ইউজারের তথ্য তুলে আনা
+    # ৩. ডাটা তুলে আনা (পরিসংখ্যানসহ)
     cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
     res = cursor.fetchone()
     current_balance = res[0] if res else 0
     p_address = res[1] if res and res[1] else "সেট করা নেই"
+    
+    cursor.execute("SELECT single_id_count FROM stats WHERE user_id=? AND date=?", (message.from_user.id, today))
+    work_res = cursor.fetchone()
+    total_work_today = work_res[0] if work_res else 0
 
-    # ৩. অ্যাডমিন কন্ট্রোল প্যানেল টেক্সট (যা দুই বটেই যাবে)
+    # ৪. দ্বিতীয় বটের জন্য কন্ট্রোল প্যানেল টেক্সট
     admin_panel_msg = (
         f"🛠 **অ্যাডমিন কন্ট্রোল প্যানেল**\n"
         f"━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
+        f"👤 **ইউজার:** {message.from_user.mention}\n"
         f"💰 **মোট ব্যালেন্স:** {current_balance} টাকা\n"
-        f"📊 **আজকের কাজ:** {category} (+১)\n"
+        f"📊 **আজকের মোট কাজ:** {total_work_today} টি\n"
         f"📍 **পেমেন্ট এড্রেস:** {p_address}\n"
         f"━━━━━━━━━━━━━━━━━━"
     )
 
-    # ৪. কন্ট্রোল বাটন (ব্লক, এডিট, ব্রডকাস্ট)
+    # ৫. কিবোর্ড বাটন (ব্লক, এডিট, ব্রডকাস্ট)
     control_keyboard = types.InlineKeyboardMarkup()
     control_keyboard.add(
         types.InlineKeyboardButton("🚫 ব্লক", callback_data=f"block_{message.from_user.id}"),
         types.InlineKeyboardButton("💰 এডিট ব্যালেন্স", callback_data=f"edit_{message.from_user.id}")
     )
     control_keyboard.add(types.InlineKeyboardButton("📢 ব্রডকাস্ট", callback_data="broadcast_all"))
-    # ৫. দ্বিতীয় (Log) বটে তথ্য পাঠানো
-    LOG_BOT_TOKEN = "8657291789:AAHv_WcaCPT1EehdSrd4gY1UjevfRbUOlwg" 
+
+    # ৬. দ্বিতীয় বটে তথ্য পাঠানো
     async with aiohttp.ClientSession() as session:
         log_url = f"https://api.telegram.org/bot{LOG_BOT_TOKEN}/sendMessage"
         payload = {
@@ -207,14 +217,11 @@ async def get_2fa(message: types.Message, state: FSMContext):
             "reply_markup": control_keyboard.to_python(),
             "parse_mode": "Markdown"
         }
-        await session.post(log_url, json=payload) # <--- এই লাইনটি অবশ্যই যোগ করবেন
-        
-    
-    # ৬. প্রথম বটের অ্যাডমিনকে জানানো ও শেষ করা
-    await bot.send_message(ADMIN_ID, admin_panel_msg, reply_markup=control_keyboard, parse_mode="Markdown")
-    await message.answer(f"✅ আপনার তথ্য জমা হয়েছে। বর্তমান ব্যালেন্স: {current_balance} টাকা।")
-    await state.finish()
+        await session.post(log_url, json=payload)
 
+    # ৭. প্রথম বটের এডমিনকে বিস্তারিত রিপোর্ট পাঠানো
+    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+    
     
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
@@ -381,6 +388,23 @@ async def admin_search(message: types.Message):
             await message.answer("❌ ডাটাবেসে এই ইউজার পাওয়া যায়নি।")
     except ValueError:
         await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
+        # --- ব্লক ইউজার হ্যান্ডলার ---
+@dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
+async def block_user(call: types.CallbackQuery):
+    uid = call.data.split('_')[1]
+    # এখানে আপনার ব্লক লজিক বা ব্লকলিস্ট টেবিলে ইনসার্ট করতে পারেন
+    await call.answer(f"ইউজার {uid} কে ব্লক করা হয়েছে (লজিক অনুযায়ী)")
+    await bot.send_message(uid, "❌ আপনাকে বট থেকে ব্লক করা হয়েছে।")
+
+# --- ব্যালেন্স এডিট হ্যান্ডলার ---
+@dp.callback_query_handler(lambda c: c.data.startswith('edit_'), user_id=ADMIN_ID)
+async def start_edit_balance(call: types.CallbackQuery, state: FSMContext):
+    uid = call.data.split('_')[1]
+    await state.update_data(target_id=uid)
+    await call.message.answer(f"ইউজার `{uid}` এর নতুন ব্যালেন্স কত হবে তা লিখুন:")
+    await BotState.waiting_for_add_money.set()
+    await call.answer()
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
