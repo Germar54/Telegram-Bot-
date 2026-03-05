@@ -61,7 +61,7 @@ async def is_blocked(user_id):
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Work start 🔥", "Withdraw")
+    keyboard.add("Work start 🔥", "💳Withdraw")
     return keyboard
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -126,12 +126,23 @@ async def work_start(message: types.Message):
         return await message.answer("❌ দুঃখিত, আপনি ব্লকড! আপনি আর কাজ জমা দিতে পারবেন না।")
     
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("IG Mother Account", "IG 2fa")
-    keyboard.add("🔄 রিফ্রেশ") 
+    keyboard.add("Work start 🔥", "💳Withdraw")
+    keyboard.add("🔄 রিফ্রেশ")
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=keyboard)
-    
+@dp.message_handler(lambda message: message.text == "💳Withdraw")
+async def withdraw_main(message: types.Message):
+    # ইউজার ব্লকড কি না চেক করা
+    if await is_blocked(message.from_user.id):
+        return await message.answer("❌ আপনি ব্লকড থাকার কারণে উইথড্র করতে পারবেন না।")
+        
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    keyboard.add(
+        types.InlineKeyboardButton("➕ অ্যাড পেমেন্ট মেথড", callback_data="add_method"),
+        types.InlineKeyboardButton("💸 উইথড্র করুন", callback_data="confirm_withdraw")
+    )
+    await message.answer("💰 **উইথড্র মেনু**\nনিচের অপশন থেকে বেছে নিন:", reply_markup=keyboard)
 
 # --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
 @dp.callback_query_handler(lambda c: c.data.startswith('type_'), state="*")
@@ -422,6 +433,43 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     
     # স্টেট ক্লিয়ার করা
     await state.finish()
+    # ৫টি পেমেন্ট মেথড দেখানোর হ্যান্ডলার (বিকাশ, নগদ ইত্যাদি)
+@dp.callback_query_handler(lambda c: c.data == "add_method")
+async def show_payment_methods(call: types.CallbackQuery):
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    methods = ["Bkash", "Nagad", "Rocket", "Binance", "Upay"]
+    for m in methods:
+        keyboard.insert(types.InlineKeyboardButton(m, callback_data=f"set_{m.lower()}"))
+    await call.message.edit_text("💳 **কোন মেথডটি অ্যাড করতে চান?**", reply_markup=keyboard)
+
+# মেথড সিলেক্ট করলে নম্বর চাওয়ার হ্যান্ডলার
+@dp.callback_query_handler(lambda c: c.data.startswith('set_'))
+async def ask_for_address(call: types.CallbackQuery, state: FSMContext):
+    method_name = call.data.split('_')[1].capitalize()
+    await state.update_data(current_method=method_name)
+    await call.message.answer(f"✅ আপনি **{method_name}** সিলেক্ট করেছেন।\nআপনার নম্বর বা অ্যাড্রেসটি লিখে পাঠান:")
+    await BotState.waiting_for_payment_address.set()
+    await call.answer()
+
+# নম্বর সেভ করা এবং আবার ৫টি মেথড অপশনে ফিরে যাওয়া
+@dp.message_handler(state=BotState.waiting_for_payment_address)
+async def save_payment_address(message: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    method = user_data.get('current_method')
+    address = message.text
+    
+    # মেমরিতে তথ্য সেভ রাখা
+    await state.update_data({f"addr_{method.lower()}": address})
+    await message.answer(f"✅ আপনার **{method}** অ্যাড্রেসটি সেভ হয়েছে।")
+    
+    # আবার ৫টি মেথড দেখানোর জন্য মেনু কল করা
+    keyboard = types.InlineKeyboardMarkup(row_width=2)
+    methods = ["Bkash", "Nagad", "Rocket", "Binance", "Upay"]
+    for m in methods:
+        keyboard.insert(types.InlineKeyboardButton(m, callback_data=f"set_{m.lower()}"))
+    await message.answer("💳 **আরো কোনো মেথড অ্যাড করতে চাইলে সিলেক্ট করুন:**", reply_markup=keyboard)
+    await state.set_state(None)
+    
                   
 if __name__ == '__main__':
     keep_alive()
