@@ -388,6 +388,8 @@ async def admin_unblock(message: types.Message):
         cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
         db.commit()
         await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
+        await bot.send_message(uid, "✅ আপনাকে আনব্লক করা হয়েছে।")
+        
     except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
 @dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
 async def block_callback(call: types.CallbackQuery, state: FSMContext):
