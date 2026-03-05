@@ -1,7 +1,6 @@
 import logging
 import sqlite3
 import os 
-import aiohttp
 from flask import Flask
 from threading import Thread
 from aiogram import Bot, Dispatcher, executor, types
@@ -160,61 +159,26 @@ async def get_2fa(message: types.Message, state: FSMContext):
                  f"🔑 **Pass:** `{data.get('u_pass')}`\n"
                  f"🔐 **2FA:** `{message.text}`")
     import datetime
-    import json
-    import aiohttp
     today = datetime.date.today().strftime("%Y-%m-%d")
-
-    # ১. ডাটাবেস আপডেট (Main Bot)
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     
+    # ক্যাটাগরি অনুযায়ী ব্যালেন্স যোগ করার লজিক
     category = data.get('category')
-    amount_to_add = 9.00 if category == "IG Mother Account" else 2.30
-    cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
-    db.commit()
+    amount_to_add = 0
 
-    # ২. ইউজারের তথ্য তুলে আনা
-    cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
-    res = cursor.fetchone()
-    current_balance = res[0] if res else 0
-    p_address = res[1] if res and res[1] else "সেট করা নেই"
+    if category == "IG Mother Account":
+        amount_to_add = 9.00
+    elif category == "IG 2FA":
+        amount_to_add = 2.30
 
-    # ৩. অ্যাডমিন কন্ট্রোল প্যানেল টেক্সট (যা দুই বটেই যাবে)
-    admin_panel_msg = (
-        f"🛠 **অ্যাডমিন কন্ট্রোল প্যানেল**\n"
-        f"━━━━━━━━━━━━━━━━━━\n"
-        f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
-        f"💰 **মোট ব্যালেন্স:** {current_balance} টাকা\n"
-        f"📊 **আজকের কাজ:** {category} (+১)\n"
-        f"📍 **পেমেন্ট এড্রেস:** {p_address}\n"
-        f"━━━━━━━━━━━━━━━━━━"
-    )
-
-    # ৪. কন্ট্রোল বাটন (ব্লক, এডিট, ব্রডকাস্ট)
-    control_keyboard = types.InlineKeyboardMarkup()
-    control_keyboard.add(
-        types.InlineKeyboardButton("🚫 ব্লক", callback_data=f"block_{message.from_user.id}"),
-        types.InlineKeyboardButton("💰 এডিট ব্যালেন্স", callback_data=f"edit_{message.from_user.id}")
-    )
-    control_keyboard.add(types.InlineKeyboardButton("📢 ব্রডকাস্ট", callback_data="broadcast_all"))
-    # ৫. দ্বিতীয় (Log) বটে তথ্য পাঠানো
-    LOG_BOT_TOKEN = "8657291789:AAHv_WcaCPT1EehdSrd4gY1UjevfRbUOlwg" 
-    async with aiohttp.ClientSession() as session:
-        log_url = f"https://api.telegram.org/bot{LOG_BOT_TOKEN}/sendMessage"
-        payload = {
-            "chat_id": ADMIN_ID,
-            "text": admin_panel_msg,
-            "reply_markup": control_keyboard.to_python(),
-            "parse_mode": "Markdown"
-        }
-        await session.post(log_url, json=payload) # <--- এই লাইনটি অবশ্যই যোগ করবেন
-        
+    if amount_to_add > 0:
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
     
-    # ৬. প্রথম বটের অ্যাডমিনকে জানানো ও শেষ করা
-    await bot.send_message(ADMIN_ID, admin_panel_msg, reply_markup=control_keyboard, parse_mode="Markdown")
-    await message.answer(f"✅ আপনার তথ্য জমা হয়েছে। বর্তমান ব্যালেন্স: {current_balance} টাকা।")
+    db.commit()
+    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
     await state.finish()
-
     
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
