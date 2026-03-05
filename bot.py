@@ -118,7 +118,7 @@ async def ask_work_type(message: types.Message, state: FSMContext):
     inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
     
     await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
-   @dp.message_handler(lambda message: message.text == "Work start 🔥")
+@dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     if await is_blocked(message.from_user.id):
         return await message.answer("❌ দুঃখিত, আপনি ব্লকড! আপনি আর কাজ জমা দিতে পারবেন না।")
