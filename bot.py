@@ -36,6 +36,8 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS withdraw_requests
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
 db.commit()
+cursor.execute('''CREATE TABLE IF NOT EXISTS blacklist (user_id INTEGER PRIMARY KEY)''')
+db.commit()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
@@ -51,6 +53,9 @@ class BotState(StatesGroup):
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
+async def is_blocked(user_id):
+    cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
+    return cursor.fetchone() is not None
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -113,15 +118,21 @@ async def ask_work_type(message: types.Message, state: FSMContext):
     inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
     
     await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
-    
-@dp.message_handler(lambda message: message.text == "Work start 🔥")
+   @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
+    # এই ২ লাইন নতুন যোগ করবেন (লাইন ১২৪ থেকে শুরু হবে)
+        if await is_blocked(message.from_user.id):
+        return await message.answer("❌ দুঃখিত, আপনি ব্লকড! আপনি আর কাজ জমা দিতে পারবেন না।")
+    
+    # আপনার আগের নিচের কোডগুলো যেভাবে ছিল সেভাবেই থাকবে
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("IG Mother Account", "IG 2fa")
     keyboard.add("🔄 রিফ্রেশ") 
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=keyboard)
+    
+
 # --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
 @dp.callback_query_handler(lambda c: c.data.startswith('type_'), state="*")
 async def process_callback_work_type(callback_query: types.CallbackQuery):
