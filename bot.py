@@ -45,7 +45,7 @@ db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
-    waiting_for_address = State()
+    waiting_for_payment_address = State()
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
     waiting_for_add_money = State()
