@@ -29,6 +29,14 @@ dp = Dispatcher(bot, storage=storage)
 
 db = sqlite3.connect("users.db", check_same_thread=False)
 cursor = db.cursor()
+cursor.execute('''CREATE TABLE IF NOT EXISTS stats 
+                  (user_id INTEGER, file_count INTEGER DEFAULT 0, single_id_count INTEGER DEFAULT 0, date TEXT)''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS withdraw_requests 
+                  (req_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, amount REAL, status TEXT DEFAULT 'pending')''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS users 
+                  (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
+db.commit()
+
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
 db.commit()
@@ -150,7 +158,12 @@ async def get_2fa(message: types.Message, state: FSMContext):
                  f"🆔 **ID:** `{data.get('u_id')}`\n"
                  f"🔑 **Pass:** `{data.get('u_pass')}`\n"
                  f"🔐 **2FA:** `{message.text}`")
-    
+       import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+    cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
+    db.commit()
+
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
     await message.answer("✅ আপনার তথ্যগুলো সফলভাবে জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে।", reply_markup=main_menu())
     await state.finish()
@@ -167,7 +180,12 @@ async def refresh_to_main(message: types.Message, state: FSMContext):
 async def handle_file(message: types.Message, state: FSMContext):
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data=f"adminadd_{message.from_user.id}"))
-    
+    import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+    cursor.execute("UPDATE stats SET file_count = file_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
+    db.commit()
+
     await bot.send_document(ADMIN_ID, message.document.file_id, 
                            caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: **`{message.from_user.id}`**", 
                            reply_markup=keyboard, parse_mode="Markdown")
@@ -285,6 +303,35 @@ async def final_add_money(message: types.Message, state: FSMContext):
 # ==========================================
 # ৫. রান করা
 # ==========================================
+# --- অ্যাডমিন প্যানেল: ইউজার সার্চ ও বিস্তারিত রিপোর্ট ---
+@dp.message_handler(commands=['search'], user_id=ADMIN_ID)
+async def admin_search(message: types.Message):
+    args = message.get_args()
+    if not args: return await message.answer("⚠️ আইডি দিন। যেমন: `/search 12345678`")
+    
+    try:
+        target_id = int(args)
+        cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (target_id,))
+        user = cursor.fetchone()
+        
+        if user:
+            import datetime
+            today = datetime.date.today().strftime("%Y-%m-%d")
+            # আজকের কাজের হিসাব
+            cursor.execute("SELECT file_count, single_id_count FROM stats WHERE user_id=? AND date=?", (target_id, today))
+            s = cursor.fetchone() or (0, 0)
+            
+            text = (f"👤 **ইউজার রিপোর্ট (ID: `{target_id}`)**\n\n"
+                    f"💵 ব্যালেন্স: {user[0]} টাকা\n"
+                    f"💳 পেমেন্ট মেথড: `{user[1] or 'নেই'}`\n"
+                    f"📊 আজ জমা দিয়েছে:\n"
+                    f"📁 ফাইল: {s[0]} টি\n"
+                    f"👤 সিঙ্গেল আইডি: {s[1]} টি")
+            await message.answer(text, parse_mode="Markdown")
+        else:
+            await message.answer("❌ ডাটাবেসে এই ইউজার পাওয়া যায়নি।")
+    except ValueError:
+        await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
