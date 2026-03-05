@@ -53,6 +53,8 @@ class BotState(StatesGroup):
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
+    waiting_for_block_reason = State()
+
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -356,15 +358,27 @@ async def admin_search(message: types.Message):
         await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
         # ১. কমান্ড দিয়ে ব্লক করা: /block 12345678
 @dp.message_handler(commands=['block'], user_id=ADMIN_ID)
-async def admin_block(message: types.Message):
+@dp.message_handler(commands=['block'], user_id=ADMIN_ID)
+async def admin_block(message: types.Message, state: FSMContext):
     try:
+        # কমান্ড থেকে ইউজার আইডি নেওয়া
         uid = int(message.get_args())
+        
+        # ডাটাবেসে ব্লক হিসেবে সেভ করা
         cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
         db.commit()
-        await message.answer(f"🚫 ইউজার `{uid}` কে ব্লক করা হয়েছে।")
-        try: await bot.send_message(uid, "❌ আপনাকে বট থেকে ব্লক করা হয়েছে।")
-        except: pass
-    except: await message.answer("সঠিক ফরম্যাট: `/block আইডি`")
+        
+        # কারণ পাঠানোর জন্য আইডিটি সাময়িকভাবে সেভ রাখা
+        await state.update_data(blocking_user_id=uid)
+        
+        await message.answer(f"🚫 ইউজার `{uid}` ব্লক করা হয়েছে।\nএখন ব্লক করার কারণটি লিখে পাঠান:")
+        
+        # কারণ নেওয়ার জন্য স্টেট সেট করা
+        await BotState.waiting_for_block_reason.set()
+        
+    except:
+        await message.answer("⚠️ সঠিক ফরম্যাট: `/block ইউজার_আইডি` লিখুন।")
+        
 
 # ২. কমান্ড দিয়ে আনব্লক করা: /unblock 12345678
 @dp.message_handler(commands=['unblock'], user_id=ADMIN_ID)
@@ -375,16 +389,38 @@ async def admin_unblock(message: types.Message):
         db.commit()
         await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
     except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
-
-# ৩. আপনার অ্যাডমিন প্যানেলের '🚫 ব্লক' বাটনটি সচল করা
 @dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
-async def block_callback(call: types.CallbackQuery):
+async def block_callback(call: types.CallbackQuery, state: FSMContext):
     uid = int(call.data.split('_')[1])
+    # ডাটাবেসে ব্লক করা
     cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
     db.commit()
-    await call.answer(f"ইউজার {uid} ব্লকড!", show_alert=True)
-    await call.message.edit_text(f"🚫 ইউজার `{uid}` কে সফলভাবে ব্লক করা হয়েছে।")
-        
+    
+    # ইউজার আইডি সেভ রাখা
+    await state.update_data(blocking_user_id=uid)
+    
+    await call.message.answer(f"🚫 ইউজার `{uid}` ব্লকড।\nএখন ব্লক করার কারণটি লিখে পাঠান:")
+    await BotState.waiting_for_block_reason.set()
+    await call.answer()
+    
+@dp.message_handler(state=BotState.waiting_for_block_reason, user_id=ADMIN_ID)
+async def send_block_reason(message: types.Message, state: FSMContext):
+    # সেভ করা আইডিটি ফিরিয়ে আনা
+    data = await state.get_data()
+    uid = data.get('blocking_user_id')
+    reason = message.text # আপনি যা লিখে পাঠাবেন
+    
+    try:
+        # ইউজারের কাছে কারণসহ মেসেজ পাঠানো
+        msg_text = f"❌ আপনাকে বট থেকে ব্লক করা হয়েছে।\n📝 কারণ: {reason}"
+        await bot.send_message(uid, msg_text)
+        await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
+    except:
+        await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
+    
+    # স্টেট ক্লিয়ার করা
+    await state.finish()
+                  
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
