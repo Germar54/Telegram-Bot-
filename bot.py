@@ -356,6 +356,37 @@ async def admin_search(message: types.Message):
             await message.answer("❌ ডাটাবেসে এই ইউজার পাওয়া যায়নি।")
     except ValueError:
         await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
+        # ১. কমান্ড দিয়ে ব্লক করা: /block 12345678
+@dp.message_handler(commands=['block'], user_id=ADMIN_ID)
+async def admin_block(message: types.Message):
+    try:
+        uid = int(message.get_args())
+        cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
+        db.commit()
+        await message.answer(f"🚫 ইউজার `{uid}` কে ব্লক করা হয়েছে।")
+        try: await bot.send_message(uid, "❌ আপনাকে বট থেকে ব্লক করা হয়েছে।")
+        except: pass
+    except: await message.answer("সঠিক ফরম্যাট: `/block আইডি`")
+
+# ২. কমান্ড দিয়ে আনব্লক করা: /unblock 12345678
+@dp.message_handler(commands=['unblock'], user_id=ADMIN_ID)
+async def admin_unblock(message: types.Message):
+    try:
+        uid = int(message.get_args())
+        cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
+        db.commit()
+        await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
+    except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
+
+# ৩. আপনার অ্যাডমিন প্যানেলের '🚫 ব্লক' বাটনটি সচল করা
+@dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
+async def block_callback(call: types.CallbackQuery):
+    uid = int(call.data.split('_')[1])
+    cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
+    db.commit()
+    await call.answer(f"ইউজার {uid} ব্লকড!", show_alert=True)
+    await call.message.edit_text(f"🚫 ইউজার `{uid}` কে সফলভাবে ব্লক করা হয়েছে।")
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
