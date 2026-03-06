@@ -138,19 +138,35 @@ async def work_start(message: types.Message):
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=inline_kb)
     
-
-# --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
-@dp.callback_query_handler(lambda c: c.data.startswith('type_'), state="*")
+@dp.callback_query_handler(lambda c: c.data.startswith('type_'))
 async def process_callback_work_type(callback_query: types.CallbackQuery):
-    if callback_query.data == "type_file":
-        await bot.answer_callback_query(callback_query.id)
-        await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি (Excel File) পাঠান।")
-        await BotState.waiting_for_file.set()
-    elif callback_query.data == "type_single":
-        await bot.answer_callback_query(callback_query.id)
-        await bot.send_message(callback_query.from_user.id, "👤 আপনার ইউজার আইডি (User ID) দিন:")
-        await BotState.waiting_for_single_user.set()
-
+    data = callback_query.data
+    
+    # ইউজার কোন ক্যাটাগরি সিলেক্ট করেছে তা সেভ করা
+    category_map = {
+        "type_ig_mother": "IG Mother Account",
+        "type_ig_2fa": "IG 2fa",
+        "type_fb_2fa": "FB 0fnd 2fa",
+        "type_ig_cookies": "IG Cookies"
+    }
+    selected_category = category_map.get(data, "Unknown")
+    
+    # শুধু একটি 'File' বাটন দেখানো
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="ask_for_file"))
+    
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(
+        callback_query.from_user.id, 
+        f"✅ আপনি **{selected_category}** সিলেক্ট করেছেন।\nনিচের বাটনে ক্লিক করে ফাইল জমা দিন:", 
+        reply_markup=inline_kb)
+@dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
+async def ask_for_file_handler(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
+    # ইউজার এখন ফাইল পাঠাবে, তাই ফাইল রিসিভ করার স্টেট সেট করুন
+    await BotState.waiting_for_file.set() 
+    
 # --- সিঙ্গেল আইডির তথ্য এক এক করে নেওয়ার হ্যান্ডলার ---
 @dp.message_handler(state=BotState.waiting_for_single_user)
 async def get_id(message: types.Message, state: FSMContext):
