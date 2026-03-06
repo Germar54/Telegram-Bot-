@@ -108,27 +108,20 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
 # =========================================
-@dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
-async def ask_work_type(message: types.Message, state: FSMContext):
-    # এই লাইনগুলো বাম দিক থেকে ৪টি স্পেস ডানে থাকবে
-    await state.update_data(category=message.text)
-    
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb.add(types.InlineKeyboardButton("🗃️ File", callback_data="type_file"))
-    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
-    
-    await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
-@dp.message_handler(lambda message: message.text == "Work start 🔥")
+ @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     if await is_blocked(message.from_user.id):
-        return await message.answer("❌ দুঃখিত, আপনি ব্লকড! আপনি আর কাজ জমা দিতে পারবেন না।")
+        return await message.answer("❌ আপনি ব্লকড থাকার কারণে কাজ জমা দিতে পারবেন না।")
     
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Work start 🔥", "💳Withdraw")
-    keyboard.add("🔄 রিফ্রেশ")
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    inline_kb.add(
+        types.InlineKeyboardButton("📁 File", callback_data="type_file"),
+        types.InlineKeyboardButton("👤 Single ID", callback_data="type_single")
+    )
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
-    await message.answer(msg, reply_markup=keyboard)
+    await message.answer(msg, reply_markup=inline_kb)
+
 @dp.message_handler(lambda message: message.text == "💳Withdraw")
 async def withdraw_main(message: types.Message):
     if await is_blocked(message.from_user.id):
@@ -140,6 +133,7 @@ async def withdraw_main(message: types.Message):
         types.InlineKeyboardButton("💸 উইথড্র করুন", callback_data="confirm_withdraw")
     )
     await message.answer("💰 **উইথড্র মেনু**\nনিচের অপশন থেকে বেছে নিন:", reply_markup=keyboard)
+    
 
 
 # --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
