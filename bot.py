@@ -245,12 +245,14 @@ async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await call.answer()
 @dp.callback_query_handler(lambda c: c.data.startswith('meth_'), state=BotState.waiting_for_method_choice)
 async def process_method_choice(callback_query: types.CallbackQuery, state: FSMContext):
-    method = callback_query.data.split('_')[1]
+    method = callback_query.data.split('_')[1] # Bikash অথবা Nagad আলাদা করবে
     await state.update_data(chosen_method=method)
     
     await bot.answer_callback_query(callback_query.id)
+    # ইউজারের পছন্দ অনুযায়ী মেসেজ দিবে
     await bot.send_message(callback_query.from_user.id, f"📱 আপনার **{method}** নম্বরটি দিন:")
     await BotState.waiting_for_address.set()
+    
     
 @dp.message_handler(state=BotState.waiting_for_address)
 async def save_address(message: types.Message, state: FSMContext):
