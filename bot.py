@@ -54,7 +54,6 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
-    waiting_for_method_choice = State()
 
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
@@ -228,64 +227,28 @@ async def withdraw_process(message: types.Message):
     balance, address = res[0], res[1]
 
     if not address:
-        # যদি অ্যাড্রেস না থাকে তবে বিকাশ ও নগদ বাটন দেখাবে
-        inline_kb = types.InlineKeyboardMarkup(row_width=2)
-        inline_kb.add(
-            types.InlineKeyboardButton("বিকাশ (Bikash) 🟢", callback_data="meth_Bikash"),
-            types.InlineKeyboardButton("নগদ (Nagad) 🟠", callback_data="meth_Nagad")
-        )
-        await message.answer("💌 আপনার পেমেন্ট মেথডটি বেছে নিন:", reply_markup=inline_kb)
-        await BotState.waiting_for_method_choice.set()
+        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n🟢 Bikash :01789*****\n 🟢Nagad :0197976***\n 🟢Binance : 0givkbgbj****")
+        await BotState.waiting_for_address.set()
     else:
-        # যদি অ্যাড্রেস থাকে তবে সরাসরি ব্যালেন্স দেখাবে এবং উইথড্র অ্যামাউন্ট চাইবে
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
         
-        balance_text = (
-            f"💰 **আপনার বর্তমান ব্যালেন্স:** {balance} ৳\n"
-            f"📍 **বর্তমান পেমেন্ট এড্রেস:** `{address}`\n\n"
-            "আপনি কত টাকা উইথড্র করতে চান লিখুন (সর্বনিম্ন ৫০ টাকা):"
-        )
-        await message.answer(balance_text, reply_markup=keyboard, parse_mode="Markdown")
+        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
         await BotState.waiting_for_withdraw_amount.set()
 
 @dp.callback_query_handler(text="change_method", state="*")
 async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    inline_kb = types.InlineKeyboardMarkup(row_width=2)
-    inline_kb.add(
-        types.InlineKeyboardButton("বিকাশ (Bikash) 🟢", callback_data="meth_Bikash"),
-        types.InlineKeyboardButton("নগদ (Nagad) 🟠", callback_data="meth_Nagad")
-    )
-    await call.message.answer("আপনার নতুন পেমেন্ট মেথড বেছে নিন:", reply_markup=inline_kb)
-    await BotState.waiting_for_method_choice.set()
-    await call.answer()
-    
-@dp.callback_query_handler(lambda c: c.data.startswith('meth_'), state=BotState.waiting_for_method_choice)
-async def process_method_choice(callback_query: types.CallbackQuery, state: FSMContext):
-    method = callback_query.data.split('_')[1] # Bikash অথবা Nagad আলাদা করবে
-    await state.update_data(chosen_method=method)
-    
-    await bot.answer_callback_query(callback_query.id)
-    # ইউজারের পছন্দ অনুযায়ী মেসেজ দিবে
-    await bot.send_message(callback_query.from_user.id, f"📱 আপনার **{method}** নম্বরটি দিন:")
+    await call.message.answer("আপনার নতুন পেমেন্ট মেথড বা নম্বরটি দিন:")
     await BotState.waiting_for_address.set()
-    
+    await call.answer()
 
 @dp.message_handler(state=BotState.waiting_for_address)
 async def save_address(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    method = data.get('chosen_method', 'Method')
-    full_address = f"{method}: {message.text}" 
-    
-    # এই নিচের ২ টি লাইন অবশ্যই থাকতে হবে
-    cursor.execute("UPDATE users SET address=? WHERE user_id=?", (full_address, message.from_user.id))
+    cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
-    
-    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস ({full_address}) আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
+    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
     await state.finish()
-    
-    
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
 async def withdraw_done(message: types.Message, state: FSMContext):
