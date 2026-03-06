@@ -54,7 +54,7 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
-
+    waiting_for_single_id = State()
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -141,8 +141,6 @@ async def work_start(message: types.Message):
 @dp.callback_query_handler(lambda c: c.data.startswith('type_'))
 async def process_callback_work_type(callback_query: types.CallbackQuery):
     data = callback_query.data
-    
-    # ইউজার কোন ক্যাটাগরি সিলেক্ট করেছে তা সেভ করা
     category_map = {
         "type_ig_mother": "IG Mother Account",
         "type_ig_2fa": "IG 2fa",
@@ -151,9 +149,34 @@ async def process_callback_work_type(callback_query: types.CallbackQuery):
     }
     selected_category = category_map.get(data, "Unknown")
     
-    # শুধু একটি 'File' বাটন দেখানো
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="ask_for_file"))
+    # দুটি অপশন দেখানো: File এবং Single ID
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    inline_kb.add(
+        types.InlineKeyboardButton("📁 File", callback_data="ask_for_file"),
+        types.InlineKeyboardButton("👤 Single ID", callback_data="ask_for_single")
+    )
+    
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(
+        callback_query.from_user.id, 
+        f"✅ আপনি **{selected_category}** সিলেক্ট করেছেন।\nকাজের ধরন বেছে নিন:", 
+        reply_markup=inline_kb
+    )
+
+# --- File বাটনের রেসপন্স ---
+@dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
+async def ask_for_file_handler(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
+    await BotState.waiting_for_file.set()
+
+# --- Single ID বাটনের রেসপন্স ---
+@dp.callback_query_handler(lambda c: c.data == 'ask_for_single')
+async def ask_for_single_handler(callback_query: types.CallbackQuery):
+    await bot.answer_callback_query(callback_query.id)
+    msg = "👤 **সিঙ্গেল আইডি জমা দিন**\n\nনিচের ফরম্যাটে তথ্য লিখে পাঠান:\n`User:Pass:2FA`"
+    await bot.send_message(callback_query.from_user.id, msg, parse_mode="Markdown")
+    await BotState.waiting_for_single_id.set()
     
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(
