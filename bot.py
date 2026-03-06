@@ -45,10 +45,9 @@ db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
-    waiting_for_payment_address = State()
+    waiting_for_address = State()  # এই নামটির কারণেই এরর আসছিল, এটি ঠিক করুন
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
-    # নিচে এই ৩টি লাইন লিখে দিন
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
