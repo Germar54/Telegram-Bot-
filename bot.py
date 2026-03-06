@@ -237,7 +237,7 @@ async def get_binance(message: types.Message, state: FSMContext):
     await state.update_data(w_binance=message.text)
     await message.answer("৪/৪: আপনি কত টাকা উইথড্র করতে চান? (সর্বনিম্ন ৫০ ৳):")
     await BotState.waiting_for_withdraw_amount.set()
-    @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
+@dp.message_handler(state=BotState.waiting_for_withdraw_amount)
 async def withdraw_final_done(message: types.Message, state: FSMContext):
     try:
         amount = float(message.text)
