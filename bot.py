@@ -239,7 +239,7 @@ async def withdraw_process(message: types.Message):
 
 @dp.callback_query_handler(text="change_method", state="*")
 async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
-    await state.()
+    await state.finish()
     await call.message.answer("আপনার নতুন পেমেন্ট মেথড বা নম্বরটি দিন:")
     await BotState.waiting_for_address.set()
     await call.answer()
