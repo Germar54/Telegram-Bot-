@@ -226,8 +226,9 @@ async def withdraw_process(message: types.Message):
     cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
     res = cursor.fetchone()
     balance, address = res[0], res[1]
+
     if not address:
-        # বিকাশ ও নগদ বাটন তৈরি
+        # যদি অ্যাড্রেস না থাকে তবে বিকাশ ও নগদ বাটন দেখাবে
         inline_kb = types.InlineKeyboardMarkup(row_width=2)
         inline_kb.add(
             types.InlineKeyboardButton("বিকাশ (Bikash) 🟢", callback_data="meth_Bikash"),
@@ -235,14 +236,31 @@ async def withdraw_process(message: types.Message):
         )
         await message.answer("💌 আপনার পেমেন্ট মেথডটি বেছে নিন:", reply_markup=inline_kb)
         await BotState.waiting_for_method_choice.set()
+    else:
+        # যদি অ্যাড্রেস থাকে তবে সরাসরি ব্যালেন্স দেখাবে এবং উইথড্র অ্যামাউন্ট চাইবে
+        keyboard = types.InlineKeyboardMarkup()
+        keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
         
+        balance_text = (
+            f"💰 **আপনার বর্তমান ব্যালেন্স:** {balance} ৳\n"
+            f"📍 **বর্তমান পেমেন্ট এড্রেস:** `{address}`\n\n"
+            "আপনি কত টাকা উইথড্র করতে চান লিখুন (সর্বনিম্ন ৫০ টাকা):"
+        )
+        await message.answer(balance_text, reply_markup=keyboard, parse_mode="Markdown")
+        await BotState.waiting_for_withdraw_amount.set()
 
 @dp.callback_query_handler(text="change_method", state="*")
 async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
-    await call.message.answer("আপনার নতুন পেমেন্ট মেথড বা নম্বরটি দিন:")
-    await BotState.waiting_for_address.set()
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    inline_kb.add(
+        types.InlineKeyboardButton("বিকাশ (Bikash) 🟢", callback_data="meth_Bikash"),
+        types.InlineKeyboardButton("নগদ (Nagad) 🟠", callback_data="meth_Nagad")
+    )
+    await call.message.answer("আপনার নতুন পেমেন্ট মেথড বেছে নিন:", reply_markup=inline_kb)
+    await BotState.waiting_for_method_choice.set()
     await call.answer()
+    
 @dp.callback_query_handler(lambda c: c.data.startswith('meth_'), state=BotState.waiting_for_method_choice)
 async def process_method_choice(callback_query: types.CallbackQuery, state: FSMContext):
     method = callback_query.data.split('_')[1] # Bikash অথবা Nagad আলাদা করবে
