@@ -120,17 +120,23 @@ async def ask_work_type(message: types.Message, state: FSMContext):
     inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
     
     await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
+# --- Work Start Handler (Total 4 Categories) ---
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     if await is_blocked(message.from_user.id):
-        return await message.answer("❌ দুঃখিত, আপনি ব্লকড! আপনি আর কাজ জমা দিতে পারবেন না।")
+        return await message.answer("❌ আপনি ব্লকড থাকার কারণে কাজ জমা দিতে পারবেন না।")
     
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("IG Mother Account", "IG 2fa")
-    keyboard.add("🔄 রিফ্রেশ") 
+    # আপনার আগের ২টো এবং নতুন ২টো ক্যাটাগরি এখানে দেওয়া হলো
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    inline_kb.add(
+        types.InlineKeyboardButton("📸 IG Mother Account", callback_data="type_ig_mother"),
+        types.InlineKeyboardButton("🔐 IG 2fa", callback_data="type_ig_2fa"),
+        types.InlineKeyboardButton("🔵 FB 0fnd 2fa", callback_data="type_fb_2fa"),
+        types.InlineKeyboardButton("🍪 IG Cookies", callback_data="type_ig_cookies")
+    )
     
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
-    await message.answer(msg, reply_markup=keyboard)
+    await message.answer(msg, reply_markup=inline_kb)
     
 
 # --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
