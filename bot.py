@@ -108,7 +108,7 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
 # =========================================
- @dp.message_handler(lambda message: message.text == "Work start 🔥")
+@dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     if await is_blocked(message.from_user.id):
         return await message.answer("❌ আপনি ব্লকড থাকার কারণে কাজ জমা দিতে পারবেন না।")
