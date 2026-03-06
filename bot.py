@@ -54,7 +54,10 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
-
+    waiting_for_bikash_num = State()
+    waiting_for_nagad_num = State()
+    waiting_for_binance_id = State()
+    waiting_for_withdraw_amount = State()
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -217,25 +220,60 @@ async def handle_file(message: types.Message, state: FSMContext):
     await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
     await state.finish()
 
-# ==========================================
-# ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
-# ==========================================
-@dp.message_handler(lambda message: message.text == "Withdraw")
-async def withdraw_process(message: types.Message):
-    cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
-    res = cursor.fetchone()
-    balance, address = res[0], res[1]
+@dp.message_handler(state=BotState.waiting_for_bikash_num)
+async def get_bikash(message: types.Message, state: FSMContext):
+    await state.update_data(w_bikash=message.text)
+    await message.answer("২/৪: আপনার **নগদ (Nagad)** নম্বরটি দিন:")
+    await BotState.waiting_for_nagad_num.set()
 
-    if not address:
-        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n🟢 Bikash :01789*****\n 🟢Nagad :0197976***\n 🟢Binance : 0givkbgbj****")
-        await BotState.waiting_for_address.set()
-    else:
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
+@dp.message_handler(state=BotState.waiting_for_nagad_num)
+async def get_nagad(message: types.Message, state: FSMContext):
+    await state.update_data(w_nagad=message.text)
+    await message.answer("৩/৪: আপনার **বাইনান্স (Binance ID/Mail)** দিন:")
+    await BotState.waiting_for_binance_id.set()
+
+@dp.message_handler(state=BotState.waiting_for_binance_id)
+async def get_binance(message: types.Message, state: FSMContext):
+    await state.update_data(w_binance=message.text)
+    await message.answer("৪/৪: আপনি কত টাকা উইথড্র করতে চান? (সর্বনিম্ন ৫০ ৳):")
+    await BotState.waiting_for_withdraw_amount.set()
+    @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
+async def withdraw_final_done(message: types.Message, state: FSMContext):
+    try:
+        amount = float(message.text)
+        cursor.execute("SELECT balance FROM users WHERE user_id=?", (message.from_user.id,))
+        balance = cursor.fetchone()[0]
+
+        if amount < 50:
+            await message.answer("❌ সর্বনিম্ন ৫০ টাকা উইথড্র করা যাবে।")
+        elif amount > balance:
+            await message.answer("❌ পর্যাপ্ত ব্যালেন্স নেই!")
+        else:
+            new_balance = balance - amount
+            cursor.execute("UPDATE users SET balance=? WHERE user_id=?", (new_balance, message.from_user.id))
+            db.commit()
+
+            data = await state.get_data()
+            admin_msg = (
+                f"🚀 **নতুন উইথড্র রিকোয়েস্ট!**\n"
+                f"👤 আইডি: `{message.from_user.id}`\n"
+                f"💵 পরিমাণ: {amount} ৳\n\n"
+                f"🟢 বিকাশ: `{data.get('w_bikash')}`\n"
+                f"🟠 নগদ: `{data.get('w_nagad')}`\n"
+                f"🟡 বাইনান্স: `{data.get('w_binance')}`"
+            )
+            await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+            await message.answer(f"✅ উইথড্র সফল! রিকোয়েস্ট পাঠানো হয়েছে।\nব্যালেন্স: {new_balance} ৳", reply_markup=main_menu())
+            await state.finish()
+    except ValueError:
+        await message.answer("❌ টাকার পরিমাণটি সংখ্যায় লিখুন।")
         
-        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
-        await BotState.waiting_for_withdraw_amount.set()
-
+@dp.callback_query_handler(text="start_withdraw_flow")
+async def start_withdraw_flow(call: types.CallbackQuery):
+    await call.message.answer("১/৪: আপনার **বিকাশ (Bikash)** নম্বরটি দিন:")
+    await BotState.waiting_for_bikash_num.set()
+    await call.answer()
+    
 @dp.callback_query_handler(text="change_method", state="*")
 async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await state.finish()
