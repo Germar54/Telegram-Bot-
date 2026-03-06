@@ -469,7 +469,30 @@ async def save_payment_address(message: types.Message, state: FSMContext):
         keyboard.insert(types.InlineKeyboardButton(m, callback_data=f"set_{m.lower()}"))
     await message.answer("💳 **আরো কোনো মেথড অ্যাড করতে চাইলে সিলেক্ট করুন:**", reply_markup=keyboard)
     await state.set_state(None)
+    # 'উইথড্র করুন' বাটনের লজিক
+@dp.callback_query_handler(lambda c: c.data == "confirm_withdraw")
+
+async def process_withdraw_request(call: types.CallbackQuery, state: FSMContext):
+    user_id = call.from_user.id
     
+    # ডাটাবেস থেকে ব্যালেন্স এবং অ্যাড্রেস চেক করা
+    cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (user_id,))
+    result = cursor.fetchone()
+    
+    if result:
+        balance, address = result
+        if not address or address == "None":
+            await call.message.answer("❌ আপনার পেমেন্ট নম্বর বা অ্যাড্রেস সেট করা নেই!\nদয়া করে 'অ্যাড পেমেন্ট মেথড' থেকে নম্বর সেট করুন।")
+        elif balance <= 0:
+            await call.message.answer(f"❌ আপনার ব্যালেন্স পর্যাপ্ত নয়। বর্তমান ব্যালেন্স: {balance} টাকা।")
+        else:
+            await call.message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} টাকা।\nকত টাকা উইথড্র করতে চান? পরিমাণটি লিখে পাঠান:")
+            await BotState.waiting_for_withdraw_amount.set()
+    else:
+        await call.message.answer("❌ আপনাকে ডাটাবেসে পাওয়া যায়নি। দয়া করে বটটি রিস্টার্ট করুন।")
+    
+    await call.answer()
+            
                   
 if __name__ == '__main__':
     keep_alive()
