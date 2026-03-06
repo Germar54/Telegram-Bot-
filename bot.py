@@ -45,7 +45,7 @@ db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
-    waiting_for_address = State()  # এই নামটির কারণেই এরর আসছিল, এটি ঠিক করুন
+    waiting_for_payment_address = State()  # এই লাইনটি আপনার ক্লাসে থাকতে হবে
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
     waiting_for_single_user = State()
@@ -131,7 +131,6 @@ async def work_start(message: types.Message):
     await message.answer(msg, reply_markup=keyboard)
 @dp.message_handler(lambda message: message.text == "💳Withdraw")
 async def withdraw_main(message: types.Message):
-    # ইউজার ব্লকড কি না চেক করা
     if await is_blocked(message.from_user.id):
         return await message.answer("❌ আপনি ব্লকড থাকার কারণে উইথড্র করতে পারবেন না।")
         
@@ -141,6 +140,7 @@ async def withdraw_main(message: types.Message):
         types.InlineKeyboardButton("💸 উইথড্র করুন", callback_data="confirm_withdraw")
     )
     await message.answer("💰 **উইথড্র মেনু**\nনিচের অপশন থেকে বেছে নিন:", reply_markup=keyboard)
+
 
 # --- ইনলাইন বাটনের প্রসেসিং (File vs Single ID) ---
 @dp.callback_query_handler(lambda c: c.data.startswith('type_'), state="*")
@@ -451,15 +451,19 @@ async def ask_for_address(call: types.CallbackQuery, state: FSMContext):
 
 # নম্বর সেভ করা এবং আবার ৫টি মেথড অপশনে ফিরে যাওয়া
 @dp.message_handler(state=BotState.waiting_for_payment_address)
-async def save_payment_address(message: types.Message, state: FSMContext):
+
     user_data = await state.get_data()
     method = user_data.get('current_method')
     address = message.text
     
     # মেমরিতে তথ্য সেভ রাখা
-    await state.update_data({f"addr_{method.lower()}": address})
-    await message.answer(f"✅ আপনার **{method}** অ্যাড্রেসটি সেভ হয়েছে।")
+        address = message.text
+    # এই লাইনটি ডাটাবেসে নম্বরটি লিখে রাখবে
+    cursor.execute("UPDATE users SET address=? WHERE user_id=?", (address, message.from_user.id))
+    db.commit()
     
+    await message.answer(f"✅ সফল! আপনার {method} নম্বর ({address}) সেভ হয়েছে।")
+
     # আবার ৫টি মেথড দেখানোর জন্য মেনু কল করা
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     methods = ["Bkash", "Nagad", "Rocket", "Binance", "Upay"]
