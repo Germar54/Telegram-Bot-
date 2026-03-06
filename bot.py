@@ -448,22 +448,20 @@ async def ask_for_address(call: types.CallbackQuery, state: FSMContext):
     await call.message.answer(f"✅ আপনি **{method_name}** সিলেক্ট করেছেন।\nআপনার নম্বর বা অ্যাড্রেসটি লিখে পাঠান:")
     await BotState.waiting_for_payment_address.set()
     await call.answer()
-
-# নম্বর সেভ করা এবং আবার ৫টি মেথড অপশনে ফিরে যাওয়া
 @dp.message_handler(state=BotState.waiting_for_payment_address)
 
+async def save_payment_address(message: types.Message, state: FSMContext):
     user_data = await state.get_data()
     method = user_data.get('current_method')
     address = message.text
-    
-    # মেমরিতে তথ্য সেভ রাখা
-        address = message.text
-    # এই লাইনটি ডাটাবেসে নম্বরটি লিখে রাখবে
+
+    # ডাটাবেসে নম্বর সেভ করার সঠিক কোড
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (address, message.from_user.id))
     db.commit()
-    
-    await message.answer(f"✅ সফল! আপনার {method} নম্বর ({address}) সেভ হয়েছে।")
 
+    await message.answer(f"✅ সফল! আপনার {method} নম্বর ({address}) সেভ হয়েছে।")
+    await state.finish()
+    
     # আবার ৫টি মেথড দেখানোর জন্য মেনু কল করা
     keyboard = types.InlineKeyboardMarkup(row_width=2)
     methods = ["Bkash", "Nagad", "Rocket", "Binance", "Upay"]
