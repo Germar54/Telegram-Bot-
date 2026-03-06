@@ -252,7 +252,7 @@ async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
     await BotState.waiting_for_address.set()
     await call.answer()
 
-@dp.message_handler(state=BotState.waiting_for_address)
+@dp.message_handler(state=BotState.waiting_for_payment_address)
 async def save_address(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
