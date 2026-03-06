@@ -253,18 +253,20 @@ async def process_method_choice(callback_query: types.CallbackQuery, state: FSMC
     await bot.send_message(callback_query.from_user.id, f"📱 আপনার **{method}** নম্বরটি দিন:")
     await BotState.waiting_for_address.set()
     
-    
+
 @dp.message_handler(state=BotState.waiting_for_address)
 async def save_address(message: types.Message, state: FSMContext):
     data = await state.get_data()
     method = data.get('chosen_method', 'Method')
     full_address = f"{method}: {message.text}" 
     
+    # এই নিচের ২ টি লাইন অবশ্যই থাকতে হবে
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (full_address, message.from_user.id))
     db.commit()
     
     await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস ({full_address}) আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
     await state.finish()
+    
     
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
