@@ -50,7 +50,7 @@ class BotState(StatesGroup):
     waiting_for_add_money = State()
     waiting_for_add_money = State()
     # নিচে এই ৩টি লাইন লিখে দিন
-    waiting_for_username = State()
+    waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
@@ -62,54 +62,14 @@ async def is_blocked(user_id):
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
-    keyboard.add("👥 Referral") 
     return keyboard
-    
+# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
     await state.finish() 
-    user_id = message.from_user.id
-    args = message.get_args()
-    ADMIN_ID = 8474225355 
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
+    db.commit()
 
-    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-    user_exists = cursor.fetchone()
-
-    if not user_exists:
-        referrer_id = None
-        if args and args.isdigit() and int(args) != user_id:
-            referrer_id = int(args)
-            
-            # অ্যাডমিনকে জানানো
-            admin_kb = types.InlineKeyboardMarkup()
-            accept_btn = types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}_{referrer_id}")
-            admin_kb.add(accept_btn)
-            
-            try:
-            await bot.send_message(ADMIN_ID, f"🆕 নতুন ইউজার `{user_id}` জয়েন করেছে!\n🔗 রেফার করেছে: `{referrer_id}`", reply_markup=admin_kb)
-            except:
-            pass
-
-        cursor.execute("INSERT OR IGNORE INTO users (user_id, referred_by) VALUES (?, ?)", (user_id, referrer_id))
-        db.commit()
-
-    # স্টার্ট মেসেজের ইনলাইন বাটন
-    inline_kb = types.InlineKeyboardMarkup(row_width=2)
-    btn1 = types.InlineKeyboardButton(text="🚨 Ruls And Method", url="https://t.me/instafbhub")
-    btn2 = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/Dinanhaji")
-    inline_kb.add(btn1, btn2)
-
-    welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
-📌 Instagram 00 Follower (2FA): ২.৩০ ৳
-📌 Instagram Cookies: ৩.৯০ ৳
-📌 Instagram Mother: ৭ ৳
-📌 Facebook FBc00Fnd: ৫.৮০ ৳
-
-Support: @Dinanhaji"""
-
-    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
-    await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
-    
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
@@ -446,37 +406,7 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     
     # স্টেট ক্লিয়ার করা
     await state.finish()
-@dp.message_handler(lambda message: message.text == "👥 Referral")
-async def referral_info(message: types.Message):
-    user_id = message.from_user.id
-    
-    # ডাটাবেস থেকে মোট রেফারেল সংখ্যা দেখা
-    cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
-    total_ref = cursor.fetchone()[0]
-    
-    bot_info = await bot.get_me()
-    ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
-    
-    msg = (
-        "👥 **রেফারেল ড্যাশবোর্ড**\n\n"
-        f"📊 আপনার মোট রেফারেল: `{total_ref}` জন\n\n"
-        "🔗 আপনার ইউনিক রেফারেল লিঙ্ক:\n"
-        f"`{ref_link}`\n\n"
-        "💡 এই লিঙ্ক শেয়ার করে নতুন ইউজার জয়েন করালে বোনাস পাবেন!"
-    )
-    await message.answer(msg, parse_mode="Markdown")
-@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
-async def accept_refer_handler(callback_query: types.CallbackQuery):
-    data = callback_query.data.split('_')
-    new_user = data[1]
-    referrer = data[2]
-    
-    await bot.answer_callback_query(callback_query.id, text="রেফারেল একসেপ্ট করা হয়েছে!")
-    await bot.edit_message_text(f"✅ ইউজার `{new_user}` এর রেফারেল (রেফারার: `{referrer}`) সফলভাবে গ্রহণ করা হয়েছে।", 
-                                callback_query.message.chat.id, 
-                                callback_query.message.message_id, 
-                                parse_mode="Markdown")
-    
+                  
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
