@@ -72,11 +72,11 @@ async def start(message: types.Message, state: FSMContext):
 
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
-    
+    inline_kb = types.InlineKeyboardMarkup(row_width=1) # row_width=1
     # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
-    url_button = types.InlineKeyboardButton(text="Latest update and Method", url="https://t.me/instafbhub") 
-    inline_kb.add(url_button)
-
+    url_button = types.InlineKeyboardButton(text="🚨Ruls And Method", url="https://t.me/instafbhub") 
+    help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
+    inline_kb.add(url_button, help_button)
     # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
         # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
     welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
