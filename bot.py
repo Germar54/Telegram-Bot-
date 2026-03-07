@@ -160,8 +160,8 @@ admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা 
 
 import datetime
 today = datetime.date.today().strftime("%Y-%m-%d")
-    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
-    cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
+cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     
     # ক্যাটাগরি অনুযায়ী ব্যালেন্স যোগ করার লজিক
     category = data.get('category')
