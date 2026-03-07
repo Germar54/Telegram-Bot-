@@ -408,7 +408,8 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     
     # স্টেট ক্লিয়ার করা
     await state.finish()
-@dp.message_handler(lambda message: message.text == "👥 Referral")
+# লাইন ৪১১ এ এটি দিয়ে রিপ্লেস করুন
+@dp.message_handler(lambda message: "Referral" in message.text)
 async def referral_handler(message: types.Message):
     user_id = message.from_user.id
     cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
@@ -417,9 +418,14 @@ async def referral_handler(message: types.Message):
     bot_info = await bot.get_me()
     ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
-    text = f"👥 **আপনার মোট রেফারেল:** `{total_ref}` জন\n🔗 **আপনার লিংক:** `{ref_link}`\n\nআপনি যার কাছ থেকে এই বটের লিংক পেয়েছেন, তার ইউজারনেম বা লিংকটি নিচে লিখে পাঠান:"
+    text = (
+        f"👥 **আপনার মোট রেফারেল:** `{total_ref}` জন\n"
+        f"🔗 **আপনার লিংক:** `{ref_link}`\n\n"
+        "আপনি যার কাছ থেকে এই বটের লিংক পেয়েছেন, তার ইউজারনেম বা লিংকটি নিচে লিখে পাঠান:"
+    )
     await message.answer(text, parse_mode="Markdown")
     await BotState.waiting_for_referrer_info.set()
+    
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def send_to_admin(message: types.Message, state: FSMContext):
     referrer_data = message.text
