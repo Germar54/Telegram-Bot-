@@ -79,29 +79,13 @@ async def start(message: types.Message, state: FSMContext):
 
     # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
         # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
-    welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
-নিচের পয়েন্টগুলো মনোযোগ দিয়ে পড়ুন।
+    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
+📌 Instagram 00 Follower (2FA): ২.৩০ ৳
+📌 Instagram Cookies: ৩.৯০ ৳
+📌 Instagram Mother: ৭ ৳
+📌 Facebook FBc00Fnd: ৫.৮০ ৳
 
-📌 **`পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)`**
-💸 **প্রাইস:** প্রতি পিস **`২.৩০`** টাকা (১০০+ হলে **`২.৫০`** টাকা)
-📄 **শীট ফরম্যাট:** **`User-pass-2fa`**
-⏰ **টাইম:** রাত **`০৮:১৫`** মিনিট।
-
-📌 **`পয়েন্ট ২: 📸 Instagram Cookies 00 Follower`**
-💸 **প্রাইস:** প্রতি পিস **`৩.৯০`** টাকা (১০০+ হলে **`৪.১০`** টাকা)
-📄 **শীট ফরম্যাট:** **`User-pass`**
-⏰ **টাইম:** সকাল **`১০:৩০`** মিনিট।
-
-📌 **`পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)`**
-💸 **প্রাইস:** প্রতি পিস **`৮`** টাকা (৫০+ হলে **`৯`** টাকা)
-⏰ **টাইম:** **`Anytime`**
-
-📌 **`পয়েন্ট ৪: 🔵 Facebook (FBc00Fnd 2fa)`**
-💸 **প্রাইস:** প্রতি পিস **`৫.৮০`** টাকা (৫০+ হলে **`৬`** টাকা)
-⏰ **টাইম:** রাত **`১০:০০`** PM।
-
-✅ সবাই নিয়ম মেনে সঠিক সময়ে কাজ জমা দিন।
-**Support:** @Dinanhaji"""
+  Support: @Dinanhaji"""
 
     # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
@@ -179,7 +163,7 @@ async def get_2fa(message: types.Message, state: FSMContext):
     amount_to_add = 0
 
     if category == "IG Mother Account":
-        amount_to_add = 9.00
+        amount_to_add = 7
     elif category == "IG 2FA":
         amount_to_add = 2.30
 
@@ -247,7 +231,7 @@ async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
 async def save_address(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
-    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
+    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।\n🔥এখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
     await state.finish()
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
