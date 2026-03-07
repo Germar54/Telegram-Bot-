@@ -72,7 +72,7 @@ async def start(message: types.Message, state: FSMContext):
 
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
-    inline_kb = types.InlineKeyboardMarkup(row_width=1) # row_width=1
+    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
     # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
     url_button = types.InlineKeyboardButton(text="🚨Ruls And Method", url="https://t.me/instafbhub") 
     help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
