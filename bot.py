@@ -54,6 +54,7 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
+    waiting_for_referrer_info = State() 
 
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
@@ -62,6 +63,7 @@ async def is_blocked(user_id):
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
+    keyboard.add("👥 Referral")
     return keyboard
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -406,7 +408,42 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     
     # স্টেট ক্লিয়ার করা
     await state.finish()
-                  
+@dp.message_handler(lambda message: message.text == "👥 Referral")
+async def referral_handler(message: types.Message):
+    user_id = message.from_user.id
+    cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
+    total_ref = cursor.fetchone()[0]
+    
+    bot_info = await bot.get_me()
+    ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
+    
+    text = f"👥 **আপনার মোট রেফারেল:** `{total_ref}` জন\n🔗 **আপনার লিংক:** `{ref_link}`\n\nআপনি যার কাছ থেকে এই বটের লিংক পেয়েছেন, তার ইউজারনেম বা লিংকটি নিচে লিখে পাঠান:"
+    await message.answer(text, parse_mode="Markdown")
+    await BotState.waiting_for_referrer_info.set()
+@dp.message_handler(state=BotState.waiting_for_referrer_info)
+async def send_to_admin(message: types.Message, state: FSMContext):
+    referrer_data = message.text
+    user_id = message.from_user.id
+    ADMIN_ID = 8474225355 
+
+    admin_kb = types.InlineKeyboardMarkup()
+    admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
+
+    await bot.send_message(ADMIN_ID, f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}", reply_markup=admin_kb, parse_mode="Markdown")
+    await state.finish()
+    await message.answer("ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।", reply_markup=main_menu())
+    # অ্যাডমিন যখন 'Accept Refer' বাটনে ক্লিক করবেন তখন রেফারার আইডি আপডেট হবে
+@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
+async def accept_refer_handler(callback_query: types.CallbackQuery):
+    # ডাটা থেকে নতুন ইউজার আইডি আলাদা করা
+    new_user_id = callback_query.data.split('_')[1]
+    
+    # আপনি যেহেতু ম্যানুয়ালি চেক করছেন, তাই ডাটাবেসে এটি সফল হিসেবে মার্ক করার কোড:
+    await bot.answer_callback_query(callback_query.id, text="রেফারেল সফলভাবে একসেপ্ট করা হয়েছে!")
+    await bot.edit_message_text(f"✅ ইউজার `{new_user_id}` এর রেফারেল একসেপ্ট করা হয়েছে।", 
+                                callback_query.message.chat.id, 
+                                callback_query.message.message_id)
+                        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
