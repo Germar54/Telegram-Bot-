@@ -1,6 +1,7 @@
 import logging
 import sqlite3
 import os 
+import datetime
 from flask import Flask
 from threading import Thread
 from aiogram import Bot, Dispatcher, executor, types
@@ -29,20 +30,18 @@ dp = Dispatcher(bot, storage=storage)
 
 db = sqlite3.connect("users.db", check_same_thread=False)
 cursor = db.cursor()
+
+# ডাটাবেস টেবিল তৈরি
 cursor.execute('''CREATE TABLE IF NOT EXISTS stats 
                   (user_id INTEGER, file_count INTEGER DEFAULT 0, single_id_count INTEGER DEFAULT 0, date TEXT)''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS withdraw_requests 
-                  (req_id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, amount REAL, status TEXT DEFAULT 'pending')''')
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
-db.commit()
 cursor.execute('''CREATE TABLE IF NOT EXISTS blacklist (user_id INTEGER PRIMARY KEY)''')
 db.commit()
 
-cursor.execute('''CREATE TABLE IF NOT EXISTS users 
-                  (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
-db.commit()
-
+# ==========================================
+# ২. স্টেট ক্লাস (FSM)
+# ==========================================
 class BotState(StatesGroup):
     waiting_for_file = State()
     waiting_for_address = State()
@@ -52,77 +51,48 @@ class BotState(StatesGroup):
     waiting_for_password = State()
     waiting_for_2fa = State()
     waiting_for_block_reason = State()
+
+# ব্লক চেক করার ফাংশন
+async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
+    keyboard.add("🔄 রিফ্রেশ")
     return keyboard
-# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
+
+# ==========================================
+# ৩. কমান্ড ও হ্যান্ডলার
+# ==========================================
+
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
     await state.finish() 
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
 
-    # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
-    
-    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
     url_button = types.InlineKeyboardButton(text="Latest update and Method", url="https://t.me/instafbhub") 
     inline_kb.add(url_button)
 
-    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
-        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
     welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
-নিচের পয়েন্টগুলো মনোযোগ দিয়ে পড়ুন।
+📌 **Instagram 00 Follower (2FA):** ২.৩০ ৳
+📌 **Instagram Cookies:** ৩.৯০ ৳
+📌 **Instagram Mother:** ৮-৯ ৳
+📌 **Facebook FBc00Fnd:** ৫.৮০ ৳
 
-📌 **`পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)`**
-💸 **প্রাইস:** প্রতি পিস **`২.৩০`** টাকা (১০০+ হলে **`২.৫০`** টাকা)
-📄 **শীট ফরম্যাট:** **`User-pass-2fa`**
-⏰ **টাইম:** রাত **`০৮:১৫`** মিনিট।
-
-📌 **`পয়েন্ট ২: 📸 Instagram Cookies 00 Follower`**
-💸 **প্রাইস:** প্রতি পিস **`৩.৯০`** টাকা (১০০+ হলে **`৪.১০`** টাকা)
-📄 **শীট ফরম্যাট:** **`User-pass`**
-⏰ **টাইম:** সকাল **`১০:৩০`** মিনিট।
-
-📌 **`পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)`**
-💸 **প্রাইস:** প্রতি পিস **`৮`** টাকা (৫০+ হলে **`৯`** টাকা)
-⏰ **টাইম:** **`Anytime`**
-
-📌 **`পয়েন্ট ৪: 🔵 Facebook (FBc00Fnd 2fa)`**
-💸 **প্রাইস:** প্রতি পিস **`৫.৮০`** টাকা (৫০+ হলে **`৬`** টাকা)
-⏰ **টাইম:** রাত **`১০:০০`** PM।
-
-✅ সবাই নিয়ম মেনে সঠিক সময়ে কাজ জমা দিন।
 **Support:** @Dinanhaji"""
 
-    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
-    
-    # ৪. মেইন মেনু দেখানো
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
 
-# =========================================
-@dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
-async def ask_work_type(message: types.Message, state: FSMContext):
-    # এই লাইনগুলো বাম দিক থেকে ৪টি স্পেস ডানে থাকবে
-    await state.update_data(category=message.text)
-    
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb.add(types.InlineKeyboardButton("🗃️ File", callback_data="type_file"))
-    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
-    
-    await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
-# --- Work Start Handler (Total 4 Categories) ---
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
     if await is_blocked(message.from_user.id):
         return await message.answer("❌ আপনি ব্লকড থাকার কারণে কাজ জমা দিতে পারবেন না।")
     
-    # আপনার আগের ২টো এবং নতুন ২টো ক্যাটাগরি এখানে দেওয়া হলো
     inline_kb = types.InlineKeyboardMarkup(row_width=2)
     inline_kb.add(
         types.InlineKeyboardButton("📸 IG Mother Account", callback_data="type_ig_mother"),
@@ -130,351 +100,176 @@ async def work_start(message: types.Message):
         types.InlineKeyboardButton("🔵 FB 0fnd 2fa", callback_data="type_fb_2fa"),
         types.InlineKeyboardButton("🍪 IG Cookies", callback_data="type_ig_cookies")
     )
+    await message.answer("🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:", reply_markup=inline_kb)
+
+@dp.callback_query_handler(lambda c: c.data.startswith('type_'))
+async def process_work_type(callback_query: types.CallbackQuery, state: FSMContext):
+    category_map = {
+        "type_ig_mother": "IG Mother Account",
+        "type_ig_2fa": "IG 2fa",
+        "type_fb_2fa": "FB 0fnd 2fa",
+        "type_ig_cookies": "IG Cookies"
+    }
+    selected = category_map.get(callback_query.data)
+    await state.update_data(category=selected)
     
-    msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
-    await message.answer(msg, reply_markup=inline_kb)
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="ask_for_file"))
+    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="ask_for_single"))
     
-# --- ১. ফাইল বাটনের রেসপন্স ---
-@dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
-async def ask_for_file_handler(callback_query: types.CallbackQuery):
+    await bot.send_message(callback_query.from_user.id, f"✅ আপনি **{selected}** বেছে নিয়েছেন। কাজের ধরণ দিন:", reply_markup=inline_kb)
     await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
+
+# --- ফাইল জমা দেওয়া ---
+@dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
+async def ask_for_file(call: types.CallbackQuery):
+    await bot.send_message(call.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
     await BotState.waiting_for_file.set()
+    await call.answer()
 
-# --- ২. সিঙ্গেল আইডি বাটনে ক্লিক করলে ইউজারনেম চাওয়া ---
-@dp.callback_query_handler(lambda c: c.data == 'ask_for_single')
-async def ask_for_single_handler(callback_query: types.CallbackQuery):
-    await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, "👤 আপনার **Username** দিন:")
-    await BotState.waiting_for_username.set()
-
-# --- ধাপ ১: ইউজারনেম রিসিভ করে পাসওয়ার্ড চাওয়া ---
-@dp.message_handler(state=BotState.waiting_for_username)
-async def get_id(message: types.Message, state: FSMContext):
-    await state.update_data(u_id=message.text)
-    await message.answer("🔑 এবার আপনার **Password** দিন:")
-    await BotState.waiting_for_password.set()
-
-# --- ধাপ ২: পাসওয়ার্ড রিসিভ করে ২এফএ চাওয়া ---
-@dp.message_handler(state=BotState.waiting_for_password)
-async def get_pass(message: types.Message, state: FSMContext):
-    await state.update_data(u_pass=message.text)
-    await message.answer("🔐 এবার আপনার **টু-এফএ (2FA Code)** দিন:")
-    await BotState.waiting_for_2fa.set()
-
-# --- ধাপ ৩: ২এফএ রিসিভ করে সব তথ্য সেভ করা ---
-@dp.message_handler(state=BotState.waiting_for_2fa)
-async def get_2fa(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('u_id')
-    password = data.get('u_pass')
-    two_fa = message.text
-    
-    final_text = (
-        "✅ **আপনার তথ্য জমা হয়েছে!**\n\n"
-        f"👤 User: `{username}`\n"
-        f"🔑 Pass: `{password}`\n"
-        f"🔐 2FA: `{two_fa}`\n\n"
-        "এডমিন চেক করে আপনার ব্যালেন্স আপডেট করে দিবে।"
-    )
-    await message.answer(final_text, parse_mode="Markdown")
-    
-    # অ্যাডমিনকে তথ্য পাঠানো (আপনার আইডি এখানে বসান)
-    admin_id = 7041793774 # উদাহরণস্বরূপ
-    admin_msg = f"📩 **নতুন সিঙ্গেল আইডি:**\nইউজার: {message.from_user.id}\nUser: {username}\nPass: {password}\n2FA: {two_fa}"
-    try:
-        await bot.send_message(admin_id, admin_msg)
-    except Exception as e:
-        print(f"Error sending to admin: {e}")
-
-    await state.finish()
-    
-    
-@dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
-async def ask_for_file_handler(callback_query: types.CallbackQuery):
-    await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
-    # ইউজার এখন ফাইল পাঠাবে, তাই ফাইল রিসিভ করার স্টেট সেট করুন
-    await BotState.waiting_for_file.set() 
-    
-# --- সিঙ্গেল আইডির তথ্য এক এক করে নেওয়ার হ্যান্ডলার ---
-@dp.message_handler(state=BotState.waiting_for_single_user)
-async def get_id(message: types.Message, state: FSMContext):
-    await state.update_data(u_id=message.text)
-    await message.answer("🔑 এবার পাসওয়ার্ড (Password) দিন:")
-    await BotState.waiting_for_single_pass.set()
-
-@dp.message_handler(state=BotState.waiting_for_single_pass)
-async def get_pass(message: types.Message, state: FSMContext):
-    await state.update_data(u_pass=message.text)
-    await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
-    await BotState.waiting_for_single_2fa.set()
-
-@dp.message_handler(state=BotState.waiting_for_single_2fa)
-async def get_2fa(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    # এডমিন প্যানেলে বিস্তারিত রিপোর্ট পাঠানো
-    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
-                 f"👤 **ইউজার আইডি:** `{message.from_user.id}`\n"
-                 f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
-                 f"━━━━━━━━━━━━━━━\n"
-                 f"🆔 **ID:** `{data.get('u_id')}`\n"
-                 f"🔑 **Pass:** `{data.get('u_pass')}`\n"
-                 f"🔐 **2FA:** `{message.text}`")
-    import datetime
-    today = datetime.date.today().strftime("%Y-%m-%d")
-    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
-    cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
-    
-    # ক্যাটাগরি অনুযায়ী ব্যালেন্স যোগ করার লজিক
-    category = data.get('category')
-    amount_to_add = 0
-
-    if category == "IG Mother Account":
-        amount_to_add = 9.00
-    elif category == "IG 2FA":
-        amount_to_add = 2.30
-
-    if amount_to_add > 0:
-        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
-    
-    db.commit()
-    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
-    await state.finish()
-    
-    
-# ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
-@dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
-async def refresh_to_main(message: types.Message, state: FSMContext):
-    # ইউজার যদি ফাইল দেওয়ার স্টেটে থাকে তবে তা ক্লিয়ার করবে
-    await state.finish() 
-    # মেইন মেনুতে ফিরিয়ে নিবে
-    await message.answer("✅ আপনি মেইন মেনুতে ফিরে এসেছেন।", reply_markup=main_menu())
-    
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
 async def handle_file(message: types.Message, state: FSMContext):
-    keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data=f"adminadd_{message.from_user.id}"))
-    import datetime
     today = datetime.date.today().strftime("%Y-%m-%d")
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET file_count = file_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     db.commit()
 
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data=f"adminadd_{message.from_user.id}"))
+    
     await bot.send_document(ADMIN_ID, message.document.file_id, 
-                           caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: **`{message.from_user.id}`**", 
+                           caption=f"📩 নতুন ফাইল!\n👤 আইডি: `{message.from_user.id}`", 
                            reply_markup=keyboard, parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
+    await message.answer("✅ ফাইল জমা হয়েছে। এডমিন চেক করে ব্যালেন্স দিয়ে দিবে।", reply_markup=main_menu())
     await state.finish()
 
-# ==========================================
-# ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
-# ==========================================
+# --- সিঙ্গেল আইডি জমা দেওয়া (ধাপে ধাপে) ---
+@dp.callback_query_handler(lambda c: c.data == 'ask_for_single')
+async def ask_single(call: types.CallbackQuery):
+    await bot.send_message(call.from_user.id, "👤 আপনার **Username** দিন:")
+    await BotState.waiting_for_username.set()
+    await call.answer()
+
+@dp.message_handler(state=BotState.waiting_for_username)
+async def get_username(message: types.Message, state: FSMContext):
+    await state.update_data(u_id=message.text)
+    await message.answer("🔑 এবার আপনার **Password** দিন:")
+    await BotState.waiting_for_password.set()
+
+@dp.message_handler(state=BotState.waiting_for_password)
+async def get_password(message: types.Message, state: FSMContext):
+    await state.update_data(u_pass=message.text)
+    await message.answer("🔐 এবার **2FA Code** দিন:")
+    await BotState.waiting_for_2fa.set()
+
+@dp.message_handler(state=BotState.waiting_for_2fa)
+async def get_2fa_final(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    
+    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি!**\n\n"
+                 f"👤 আইডি: `{message.from_user.id}`\n"
+                 f"📂 ক্যাটাগরি: {data.get('category')}\n"
+                 f"🆔 ID: `{data.get('u_id')}`\n"
+                 f"🔑 Pass: `{data.get('u_pass')}`\n"
+                 f"🔐 2FA: `{message.text}`")
+    
+    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+    cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
+    db.commit()
+    
+    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে।", reply_markup=main_menu())
+    await state.finish()
+
+# --- উইথড্র লজিক ---
 @dp.message_handler(lambda message: message.text == "Withdraw")
-async def withdraw_process(message: types.Message):
+async def withdraw(message: types.Message):
     cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
     res = cursor.fetchone()
     balance, address = res[0], res[1]
 
     if not address:
-        await message.answer("💌আপনার পেমেন্ট মেথড দিন ।\n 🗣️(যেমন: বিকাশ/নগদ/রকেট/বাইনান্স এড্রেস)\n👀 মেথড পাঠানোর ফরমেট: \n🟢 Bikash :01789*****\n 🟢Nagad :0197976***\n 🟢Binance : 0givkbgbj****")
+        await message.answer("💌 পেমেন্ট মেথড দিন (বিকাশ/নগদ/বাইনান্স):")
         await BotState.waiting_for_address.set()
     else:
-        keyboard = types.InlineKeyboardMarkup()
-        keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
-        
-        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
+        kb = types.InlineKeyboardMarkup().add(types.InlineKeyboardButton("Change Method ⚙️", callback_data="change_method"))
+        await message.answer(f"💰 ব্যালেন্স: {balance} ৳\n📍 এড্রেস: {address}\n\nউইথড্র পরিমাণ লিখুন (মিনিমাম ৫০):", reply_markup=kb)
         await BotState.waiting_for_withdraw_amount.set()
 
-@dp.callback_query_handler(text="change_method", state="*")
-async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
-    await state.finish()
-    await call.message.answer("আপনার নতুন পেমেন্ট মেথড বা নম্বরটি দিন:")
-    await BotState.waiting_for_address.set()
-    await call.answer()
-
 @dp.message_handler(state=BotState.waiting_for_address)
-async def save_address(message: types.Message, state: FSMContext):
+async def save_addr(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
-    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।🔥\nএখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
+    await message.answer("✅ এড্রেস সেভ হয়েছে। এখন Withdraw বাটনে ক্লিক করুন।")
     await state.finish()
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
-async def withdraw_done(message: types.Message, state: FSMContext):
+async def process_withdraw(message: types.Message, state: FSMContext):
     try:
         amount = float(message.text)
         cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
-        balance, address = cursor.fetchone()
-
-        if amount > balance:
-            await message.answer("❌ পর্যাপ্ত ব্যালেন্স নেই!")
+        balance, addr = cursor.fetchone()
+        if amount < 50 or amount > balance:
+            await message.answer("❌ ভুল পরিমাণ বা পর্যাপ্ত ব্যালেন্স নেই।")
         else:
-            new_balance = balance - amount
-            cursor.execute("UPDATE users SET balance=? WHERE user_id=?", (new_balance, message.from_user.id))
+            cursor.execute("UPDATE users SET balance = balance - ? WHERE user_id=?", (amount, message.from_user.id))
             db.commit()
-            
-            await bot.send_message(ADMIN_ID, f"🔔 উইথড্র রিকোয়েস্ট!\n🆔 আইডি: `{message.from_user.id}`\n💵 পরিমাণ: {amount} ৳\n📍 এড্রেস: {address}")
-            await message.answer(f"✅ উইথড্র সফল! {amount} ৳ কেটে নেওয়া হয়েছে।\nবর্তমান ব্যালেন্স: {new_balance} ৳", reply_markup=main_menu())
+            await bot.send_message(ADMIN_ID, f"🔔 উইথড্র রিকোয়েস্ট!\n🆔 `{message.from_user.id}`\n💵 {amount} ৳\n📍 {addr}")
+            await message.answer(f"✅ উইথড্র সফল! {amount} ৳ কেটে নেওয়া হয়েছে।")
         await state.finish()
-    except:
-        await message.answer("❌ শুধু সংখ্যা লিখুন। অথবা মেথড চেঞ্জ বাটনে ক্লিক করুন।")
+    except: await message.answer("❌ সংখ্যা লিখুন।")
 
-# ==========================================
-# ৪. এডমিন প্যানেল
-# ==========================================
-@dp.message_handler(commands=['check'])
-async def admin_check(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        uid = message.get_args()
-        cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (uid,))
-        res = cursor.fetchone()
-        if res: await message.answer(f"👤 ইউজার: `{uid}`\n💰 ব্যালেন্স: {res[0]} ৳\n📍 এড্রেস: {res[1]}")
-        else: await message.answer("❌ ইউজার পাওয়া যায়নি।")
+# --- রিফ্রেশ ---
+@dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
+async def refresh(message: types.Message, state: FSMContext):
+    await state.finish()
+    await message.answer("✅ মেনু রিফ্রেশ করা হয়েছে।", reply_markup=main_menu())
 
-@dp.message_handler(commands=['edit'])
-async def admin_edit(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        try:
-            args = message.get_args().split()
-            cursor.execute("UPDATE users SET balance=? WHERE user_id=?", (args[1], args[0]))
-            db.commit()
-            await message.answer(f"✅ ইউজার {args[0]} এর ব্যালেন্স এডিট করা হয়েছে।")
-        except: await message.answer("ফরম্যাট: /edit আইডি টাকা")
+# --- এডমিন কমান্ডস ---
+@dp.message_handler(commands=['search'], user_id=ADMIN_ID)
+async def search(message: types.Message):
+    uid = message.get_args()
+    cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (uid,))
+    u = cursor.fetchone()
+    if u: await message.answer(f"🆔 `{uid}`\n💰 ব্যালেন্স: {u[0]}\n📍 এড্রেস: {u[1]}")
+    else: await message.answer("❌ নেই।")
 
-@dp.message_handler(commands=['broadcast'])
-async def admin_broadcast(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        text = message.get_args()
-        cursor.execute("SELECT user_id FROM users")
-        all_users = cursor.fetchall()
-        for user in all_users:
-            try: await bot.send_message(user[0], text)
-            except: pass
-        await message.answer("✅ সবার কাছে মেসেজ পাঠানো হয়েছে।")
+@dp.message_handler(commands=['block'], user_id=ADMIN_ID)
+async def block(message: types.Message):
+    uid = message.get_args()
+    cursor.execute("INSERT OR IGNORE INTO blacklist VALUES (?)", (uid,))
+    db.commit()
+    await message.answer(f"🚫 {uid} ব্লক।")
+
+@dp.message_handler(commands=['unblock'], user_id=ADMIN_ID)
+async def unblock(message: types.Message):
+    uid = message.get_args()
+    cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
+    db.commit()
+    await message.answer(f"✅ {uid} আনব্লক।")
 
 @dp.callback_query_handler(lambda c: c.data.startswith('adminadd_'))
-async def add_money_btn(call: types.CallbackQuery, state: FSMContext):
-    target_id = call.data.split('_')[1]
-    await state.update_data(target_id=target_id)
-    await call.message.answer(f"ইউজার `{target_id}` কে কত টাকা পাঠাতে চান?")
+async def admin_add_money(call: types.CallbackQuery, state: FSMContext):
+    await state.update_data(target_id=call.data.split('_')[1])
+    await call.message.answer("কত টাকা যোগ করবেন?")
     await BotState.waiting_for_add_money.set()
 
 @dp.message_handler(state=BotState.waiting_for_add_money)
-async def final_add_money(message: types.Message, state: FSMContext):
+async def save_money(message: types.Message, state: FSMContext):
     if message.from_user.id == ADMIN_ID:
-        try:
-            data = await state.get_data()
-            amount = float(message.text)
-            uid = data['target_id']
-            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, uid))
-            db.commit()
-            await bot.send_message(uid, f"✅আপনার একাউন্টে {amount} ৳ যোগ করেছে।")
-            await message.answer(f"✅ {amount} ৳ সফলভাবে যোগ করা হয়েছে।")
-        except: await message.answer("❌ ভুল ইনপুট।")
+        data = await state.get_data()
+        amount, uid = float(message.text), data['target_id']
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount, uid))
+        db.commit()
+        await bot.send_message(uid, f"✅ আপনার ব্যালেন্সে {amount} ৳ যোগ হয়েছে।")
+        await message.answer("✅ সফল।")
         await state.finish()
 
 # ==========================================
-# ৫. রান করা
+# ৪. রান করা
 # ==========================================
-# --- অ্যাডমিন প্যানেল: ইউজার সার্চ ও বিস্তারিত রিপোর্ট ---
-@dp.message_handler(commands=['search'], user_id=ADMIN_ID)
-async def admin_search(message: types.Message):
-    args = message.get_args()
-    if not args: return await message.answer("⚠️ আইডি দিন। যেমন: `/search 12345678`")
-    
-    try:
-        target_id = int(args)
-        cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (target_id,))
-        user = cursor.fetchone()
-        
-        if user:
-            import datetime
-            today = datetime.date.today().strftime("%Y-%m-%d")
-            # আজকের কাজের হিসাব
-            cursor.execute("SELECT file_count, single_id_count FROM stats WHERE user_id=? AND date=?", (target_id, today))
-            s = cursor.fetchone() or (0, 0)
-            
-            text = (f"👤 **ইউজার রিপোর্ট (ID: `{target_id}`)**\n\n"
-                    f"💵 ব্যালেন্স: {user[0]} টাকা\n"
-                    f"💳 পেমেন্ট মেথড: `{user[1] or 'নেই'}`\n"
-                    f"📊 আজ জমা দিয়েছে:\n"
-                    f"📁 ফাইল: {s[0]} টি\n"
-                    f"👤 সিঙ্গেল আইডি: {s[1]} টি")
-            await message.answer(text, parse_mode="Markdown")
-        else:
-            await message.answer("❌ ডাটাবেসে এই ইউজার পাওয়া যায়নি।")
-    except ValueError:
-        await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
-        # ১. কমান্ড দিয়ে ব্লক করা: /block 12345678
-@dp.message_handler(commands=['block'], user_id=ADMIN_ID)
-@dp.message_handler(commands=['block'], user_id=ADMIN_ID)
-async def admin_block(message: types.Message, state: FSMContext):
-    try:
-        # কমান্ড থেকে ইউজার আইডি নেওয়া
-        uid = int(message.get_args())
-        
-        # ডাটাবেসে ব্লক হিসেবে সেভ করা
-        cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
-        db.commit()
-        
-        # কারণ পাঠানোর জন্য আইডিটি সাময়িকভাবে সেভ রাখা
-        await state.update_data(blocking_user_id=uid)
-        
-        await message.answer(f"🚫 ইউজার `{uid}` ব্লক করা হয়েছে।\nএখন ব্লক করার কারণটি লিখে পাঠান:")
-        
-        # কারণ নেওয়ার জন্য স্টেট সেট করা
-        await BotState.waiting_for_block_reason.set()
-        
-    except:
-        await message.answer("⚠️ সঠিক ফরম্যাট: `/block ইউজার_আইডি` লিখুন।")
-        
-
-# ২. কমান্ড দিয়ে আনব্লক করা: /unblock 12345678
-@dp.message_handler(commands=['unblock'], user_id=ADMIN_ID)
-async def admin_unblock(message: types.Message):
-    try:
-        uid = int(message.get_args())
-        cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
-        db.commit()
-        await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
-        await bot.send_message(uid, "✅ আপনাকে আনব্লক করা হয়েছে।")
-        
-    except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
-@dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
-async def block_callback(call: types.CallbackQuery, state: FSMContext):
-    uid = int(call.data.split('_')[1])
-    # ডাটাবেসে ব্লক করা
-    cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
-    db.commit()
-    
-    # ইউজার আইডি সেভ রাখা
-    await state.update_data(blocking_user_id=uid)
-    
-    await call.message.answer(f"🚫 ইউজার `{uid}` ব্লকড।\nএখন ব্লক করার কারণটি লিখে পাঠান:")
-    await BotState.waiting_for_block_reason.set()
-    await call.answer()
-    
-@dp.message_handler(state=BotState.waiting_for_block_reason, user_id=ADMIN_ID)
-async def send_block_reason(message: types.Message, state: FSMContext):
-    # সেভ করা আইডিটি ফিরিয়ে আনা
-    data = await state.get_data()
-    uid = data.get('blocking_user_id')
-    reason = message.text # আপনি যা লিখে পাঠাবেন
-    
-    try:
-        # ইউজারের কাছে কারণসহ মেসেজ পাঠানো
-        msg_text = f"❌ আপনাকে বট থেকে ব্লক করা হয়েছে।\n📝 কারণ: {reason}"
-        await bot.send_message(uid, msg_text)
-        await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
-    except:
-        await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
-    
-    # স্টেট ক্লিয়ার করা
-    await state.finish()
-                  
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
