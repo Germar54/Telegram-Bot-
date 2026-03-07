@@ -191,19 +191,28 @@ async def refresh_to_main(message: types.Message, state: FSMContext):
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
 async def handle_file(message: types.Message, state: FSMContext):
     keyboard = types.InlineKeyboardMarkup()
-    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data=f"adminadd_{message.from_user.id}"))
+    # Add Money button ebong profile link caption eksathe deya holo
+    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data="add_money"))
+    
     import datetime
     today = datetime.date.today().strftime("%Y-%m-%d")
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET file_count = file_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     db.commit()
 
+    caption = (f"📩 **নতুন ফাইল জমা পড়েছে!**\n\n"
+               f"👤 **নাম:** {message.from_user.full_name}\n"
+               f"🆔 **আইডি:** `{message.from_user.id}`\n"
+               f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})")
+
     await bot.send_document(ADMIN_ID, message.document.file_id, 
-                           caption=f"📩 নতুন ফাইল জমা পড়েছে!\n👤 ইউজার আইডি: **`{message.from_user.id}`**", 
-                           reply_markup=keyboard, parse_mode="Markdown")
+                           caption=caption, 
+                           reply_markup=keyboard, 
+                           parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স দিয়ে দিবে। আর ২৪ ঘণ্টার মধ্যে রিপোর্ট চলে আসবে!/n🚨 রিপোর্ট বটের মধ্যে চলে আসবে!!", reply_markup=main_menu())
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স এড করে দিবে।")
     await state.finish()
+
 
 # ==========================================
 # ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
