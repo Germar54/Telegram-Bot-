@@ -158,8 +158,8 @@ admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা 
              f"🔑 **Pass:** `{data.get('u_pass')}`\n"
              f"🔐 **2FA:** `{message.text}`")
 
-    import datetime
-    today = datetime.date.today().strftime("%Y-%m-%d")
+import datetime
+today = datetime.date.today().strftime("%Y-%m-%d")
     cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
     cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     
