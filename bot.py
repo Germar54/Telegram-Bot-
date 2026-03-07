@@ -144,42 +144,39 @@ async def get_pass(message: types.Message, state: FSMContext):
     await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
     await BotState.waiting_for_single_2fa.set()
 
-@dp.message_handler(state=BotState.waiting_for_single_2fa)
 async def get_2fa(message: types.Message, state: FSMContext):
     data = await state.get_data()
-    # ১৪৯ থেকে ১৫৫ নম্বর লাইনের সিঙ্গেল আইডি রিপোর্ট অংশে এটি বসান
-admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n\n"
-             f"👤 **ইউজার:** {message.from_user.full_name}\n"
-             f"🆔 **আইডি:** `{message.from_user.id}`\n"
-             f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})\n"
-             f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
-             f"━━━━━━━━━━━━━━━\n"
-             f"🆔 **ID:** `{data.get('u_id')}`\n"
-             f"🔑 **Pass:** `{data.get('u_pass')}`\n"
-             f"🔐 **2FA:** `{message.text}`")
+    # ১৪৯ থেকে ১৫৫ নম্বর লাইনের সিঙ্গেল আইডি রিপোর্ট অংশ
+    admin_msg = (f"🚀 **নতুন সিঙ্গেল আইডি জমা পড়েছে!**\n"
+                 f"👤 **ইউজার:** {message.from_user.full_name}\n"
+                 f"🆔 **আইডি:** `{message.from_user.id}`\n"
+                 f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})\n"
+                 f"📂 **ক্যাটাগরি:** {data.get('category')}\n"
+                 f"━━━━━━━━━━━━━━━\n"
+                 f"🆔 **ID:** `{data.get('u_id')}`\n"
+                 f"🔑 **Pass:** `{data.get('u_pass')}`\n"
+                 f"🔐 **2FA:** `{message.text}`")
 
-import datetime
-today = datetime.date.today().strftime("%Y-%m-%d")
-cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
-cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
-    
-    # ক্যাটাগরি অনুযায়ী ব্যালেন্স যোগ করার লজিক
-category = data.get('category')
-amount_to_add = 0
+    import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+    cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
 
-if category == "IG Mother Account":
-    amount_to_add = 7
-elif category == "IG 2FA":
-    amount_to_add = 2.30
+    category = data.get('category')
+    amount_to_add = 0
+
+    if category == "IG Mother Account":
+        amount_to_add = 7
+    elif category == "IG 2FA":
+        amount_to_add = 2.30
 
     if amount_to_add > 0:
-        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
-    
-db.commit()
-await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
-await state.finish()
-    
+        cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount_to_add, message.from_user.id))
+
+    db.commit()
+    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে!", reply_markup=main_menu())
+    await state.finish()
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
 @dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
