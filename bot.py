@@ -438,6 +438,27 @@ async def send_to_admin(message: types.Message, state: FSMContext):
     await bot.send_message(ADMIN_ID, f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}", reply_markup=admin_kb, parse_mode="Markdown")
     await state.finish()
     await message.answer("ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।", reply_markup=main_menu())
+    # ডাটাবেসে referred_by কলামটি অটোমেটিক যোগ করার জন্য (যদি না থাকে)
+try:
+    cursor.execute("ALTER TABLE users ADD COLUMN referred_by TEXT")
+    db.commit()
+except:
+    pass
+
+# রেফারেল বাটন একসেপ্ট করার হ্যান্ডলার (এটি আপনার ফাইলে নেই)
+@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
+async def accept_refer_callback(callback_query: types.CallbackQuery):
+    user_id = callback_query.data.split('_')[1]
+    await bot.answer_callback_query(callback_query.id, text="রেফারেল একসেপ্ট হয়েছে!")
+    await bot.edit_message_text(f"✅ ইউজার `{user_id}` এর রেফারেল আপনি একসেপ্ট করেছেন।", 
+                                callback_query.message.chat.id, 
+                                callback_query.message.message_id)
+
+# ফাইল শেষ করার সঠিক নিয়ম
+if __name__ == '__main__':
+    keep_alive()
+    executor.start_polling(dp, skip_updates=True)
+    
     # অ্যাডমিন যখন 'Accept Refer' বাটনে ক্লিক করবেন তখন রেফারার আইডি আপডেট হবে
 @dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
 async def accept_refer_handler(callback_query: types.CallbackQuery):
