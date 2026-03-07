@@ -143,7 +143,9 @@ async def get_pass(message: types.Message, state: FSMContext):
     await state.update_data(u_pass=message.text)
     await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
     await BotState.waiting_for_single_2fa.set()
+# ১৪৭ নম্বর লাইনে এটি বসান (যদি না থাকে)
 
+@dp.message_handler(state=BotState.waiting_for_single_2fa)
 async def get_2fa(message: types.Message, state: FSMContext):
     data = await state.get_data()
     # ১৪৯ থেকে ১৫৫ নম্বর লাইনের সিঙ্গেল আইডি রিপোর্ট অংশ
