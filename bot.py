@@ -164,21 +164,21 @@ cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (mes
 cursor.execute("UPDATE stats SET single_id_count = single_id_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
     
     # ক্যাটাগরি অনুযায়ী ব্যালেন্স যোগ করার লজিক
-    category = data.get('category')
-    amount_to_add = 0
+category = data.get('category')
+amount_to_add = 0
 
-    if category == "IG Mother Account":
-        amount_to_add = 7
-    elif category == "IG 2FA":
-        amount_to_add = 2.30
+if category == "IG Mother Account":
+    amount_to_add = 7
+elif category == "IG 2FA":
+    amount_to_add = 2.30
 
     if amount_to_add > 0:
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id=?", (amount_to_add, message.from_user.id))
     
-    db.commit()
-    await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
-    await state.finish()
+db.commit()
+await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
+await message.answer("✅ আপনার তথ্য জমা হয়েছে।")
+await state.finish()
     
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
