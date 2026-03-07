@@ -50,7 +50,7 @@ class BotState(StatesGroup):
     waiting_for_add_money = State()
     waiting_for_add_money = State()
     # নিচে এই ৩টি লাইন লিখে দিন
-    waiting_for_single_user = State()
+    waiting_for_username = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State()
@@ -70,7 +70,7 @@ async def start(message: types.Message, state: FSMContext):
     await state.finish() 
     user_id = message.from_user.id
     args = message.get_args()
-    ADMIN_ID = 8474225355 # আপনার অ্যাডমিন আইডি
+    ADMIN_ID = 8474225355 
 
     cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
     user_exists = cursor.fetchone()
@@ -85,16 +85,31 @@ async def start(message: types.Message, state: FSMContext):
             accept_btn = types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}_{referrer_id}")
             admin_kb.add(accept_btn)
             
+            try:
             await bot.send_message(ADMIN_ID, f"🆕 নতুন ইউজার `{user_id}` জয়েন করেছে!\n🔗 রেফার করেছে: `{referrer_id}`", reply_markup=admin_kb)
+            except:
+            pass
 
         cursor.execute("INSERT OR IGNORE INTO users (user_id, referred_by) VALUES (?, ?)", (user_id, referrer_id))
         db.commit()
 
-    # আগের welcome_text এবং বাটনগুলো এখানে থাকবে...
+    # স্টার্ট মেসেজের ইনলাইন বাটন
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    btn1 = types.InlineKeyboardButton(text="🚨 Ruls And Method", url="https://t.me/instafbhub")
+    btn2 = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/Dinanhaji")
+    inline_kb.add(btn1, btn2)
+
+    welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
+📌 Instagram 00 Follower (2FA): ২.৩০ ৳
+📌 Instagram Cookies: ৩.৯০ ৳
+📌 Instagram Mother: ৭ ৳
+📌 Facebook FBc00Fnd: ৫.৮০ ৳
+
+Support: @Dinanhaji"""
+
+    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
     
-    db.commit()
-
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
