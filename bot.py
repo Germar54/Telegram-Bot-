@@ -435,17 +435,56 @@ async def send_block_reason(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
+    
+    # ডেটাবেস থেকে ইউজারের মোট রেফারেল সংখ্যা গুনে আনা
+    try:
+        cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
+        total_referrals = cursor.fetchone()[0]
+    except:
+        total_referrals = 0
+    
+    # রেফারেল লিঙ্ক তৈরি
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
-
-    # ইউজারকে তার লিংক দেখানো
     await message.answer(
-        f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
+        f"👥 **আপনার মোট রেফারেল:** `{total_referrals}` জন\n"
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
-        f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
-        reply_markup=main_menu()
-                           )
+        f"❓ **আপনি কার কাছ থেকে এই বটের লিঙ্ক পেয়েছেন?**\n"
+        f"তার ইউজারনেম বা আইডিটি নিচে লিখে পাঠান:"
+    )
+    # ইউজারের পরবর্তী উত্তরের জন্য বটকে "অপেক্ষা" করানো (State সেট করা)
+    await BotState.waiting_for_referrer_info.set()
+
+# ২. ইউজার যখন নাম লিখে পাঠাবে, সেটি অ্যাডমিনকে জানানো
+@dp.message_handler(state=BotState.waiting_for_referrer_info)
+async def send_to_admin_refer(message: types.Message, state: FSMContext):
+    referrer_info = message.text  # ইউজার যা লিখে পাঠাল
+    user_id = message.from_user.id
+    
+    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন তৈরি করা
+    admin_kb = types.InlineKeyboardMarkup()
+    admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
+
+    try:
+        # অ্যাডমিনকে তথ্য পাঠানো (এখানে গোল ব্র্যাকেট ')' ব্যবহার করবেন)
+        await bot.send_message(
+            ADMIN_ID, 
+            f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার আইডি: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_info}",
+            reply_markup=admin_kb,
+            parse_mode="Markdown"
+        )
+        
+        # ইউজারকে সাথে সাথে একটি ধন্যবাদ মেসেজ দেওয়া
+        await message.answer("✅ আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
+        
+        # স্টেট বন্ধ করা (এটি সবচেয়ে জরুরি যাতে অন্য বাটন কাজ করে)
+        await state.finish()
+        
+    except:
+        await message.answer("⚠️ তথ্য পাঠানো যায়নি। আবার চেষ্টা করুন।")
+        await state.finish()
+    
         
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
