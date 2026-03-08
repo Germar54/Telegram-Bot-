@@ -430,22 +430,6 @@ async def referral_command(message: types.Message):
         f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
         reply_markup=main_menu()
                            )        
-# ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
-@dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
-async def forward_photo_to_user(message: types.Message):
-    if message.caption and message.caption.startswith('/msg'):
-        try:
-            args = message.caption.split(maxsplit=2)
-            target_id = args[1]
-            user_msg = args[2] if len(args) > 2 else ""
-            
-            await bot.send_photo(target_id, message.photo[-1].file_id, 
-                                 caption=f"📩 **এডমিনের পক্ষ থেকে:**\n\n{user_msg}", 
-                                 parse_mode="Markdown")
-            await message.answer(f"✅ ইউজার `{target_id}` কে ছবিটি পাঠানো হয়েছে।")
-       except:
-            await message.answer("❌ পাঠানো যায়নি। ফরম্যাট: /msg আইডি ক্যাপশন")
-
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
