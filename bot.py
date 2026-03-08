@@ -419,41 +419,28 @@ async def send_block_reason(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
-    # বটের ইউজারনেমসহ অটোমেটিক রেফারেল লিংক তৈরি
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
+    # অ্যাডমিনকে সরাসরি রিপোর্ট পাঠানো (ইউজারকে কিছু লিখতে হবে না)
+    try:
+        await bot.send_message(
+            ADMIN_ID, 
+            f"📩 **নতুন রেফারেল ক্লিক!**\n"
+            f"👤 ইউজার আইডি: `{user_id}`\n"
+            f"🔗 এই ইউজার রেফারেল সেকশনে প্রবেশ করেছে।"
+        )
+    except:
+        pass
+
+    # ইউজারকে তার লিংক দেখানো
     await message.answer(
         f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
-        f"আপনি যার কাছ থেকে এই বটের লিঙ্ক পেয়েছেন, তার ইউজারনেম বা লিঙ্কটি নিচে লিখে পাঠান:"
+        f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
+        reply_markup=main_menu()
     )
-    # ইউজারের উত্তরের জন্য স্টেট সেট করা
-    await BotState.waiting_for_referrer_info.set()
-
-# ২. ইউজার যখন রেফারেল তথ্য লিখে পাঠাবে (মেইন হ্যান্ডলার)
-@dp.message_handler(state=BotState.waiting_for_referrer_info)
-async def send_to_admin_refer(message: types.Message, state: FSMContext):
-    referrer_data = message.text # ইউজারের পাঠানো ইউজারনেম
-    user_id = message.from_user.id
     
-    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন তৈরি
-    admin_kb = types.InlineKeyboardMarkup()
-    admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
-
-    try:
-        # অ্যাডমিনকে রিপোর্ট পাঠানো (এখানে ব্র্যাকেট ঠিক করে দেওয়া হয়েছে)
-        await bot.send_message(
-            ADMIN_ID, 
-            f"📩 **নতুন রেফারেল রিপোর্ট!**\n"
-            f"👤 ইউজার: `{user_id}`\n"
-            f"🔗 কার মাধ্যমে এসেছে: {referrer_data}",
-            reply_markup=admin_kb,
-            parse_mode="Markdown"
-        )
-        
-        # ইউজারকে সাথে সাথে কনফার্মেশন রিপ্লাই দেওয়া [cite: Screenshot_2
-
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
 async def forward_photo_to_user(message: types.Message):
