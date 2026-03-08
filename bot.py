@@ -42,6 +42,13 @@ db.commit()
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
 db.commit()
+# এটি এককালীন কাজ, কলামটি যোগ করার জন্য
+try:
+cursor.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+db.commit()
+except:
+    # যদি কলামটি আগে থেকেই থাকে, তবে এরর আসবে এবং সেটি ইগনোর হবে
+pass
 
 class BotState(StatesGroup):
     waiting_for_file = State()
@@ -64,36 +71,45 @@ def main_menu():
     keyboard.add("Work start 🔥", "Withdraw")
     keyboard.add("👥 Referral")
     return keyboard
-# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
-@dp.message_handler(commands=['start'], state="*")
-async def start(message: types.Message, state: FSMContext):
-    await state.finish() 
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
-    db.commit()
+@dp.message_handler(commands=['start'])
+async def start_command(message: types.Message):
+    user_id = message.from_user.id
+    username = message.from_user.username or "No Username"
+    args = message.get_args() # লিংকের শেষে থাকা আইডিটি ধরবে (যেমন: ?start=123)
 
-    # ১. এখানে বাটন তৈরি হচ্ছে
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
-    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
-    url_button = types.InlineKeyboardButton(text="🚨Ruls And Method", url="https://t.me/instafbhub") 
-    help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
-    inline_kb.add(url_button, help_button)
-    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
-        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
-    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
-📌 Instagram 00 Follower (2FA): ২.৩০ ৳
-📌 Instagram Cookies: ৩.৯০ ৳
-📌 Instagram Mother: ৭ ৳
-📌 Facebook FBc00Fnd: ৫.৮০ ৳
+    # চেক করা ইউজার আগে থেকে ডেটাবেসে আছে কি না
+    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
+    user_exists = cursor.fetchone()
 
-  Support: @Dinanhaji"""
+    if not user_exists:
+        # ইউজার যদি একদম নতুন হয় এবং রেফারেল লিংকে ক্লিক করে আসে
+        referrer_id = None
+        if args and args.isdigit():
+            referrer_id = int(args)
+            if referrer_id == user_id: # নিজের লিংকে নিজে ক্লিক করলে কাউন্ট হবে না
+                referrer_id = None
 
-    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
-    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
+        # নতুন ইউজারকে ডেটাবেসে সেভ করা (রেফারার আইডি সহ)
+        cursor.execute(
+            "INSERT INTO users (user_id, username, referred_by) VALUES (?, ?, ?)", 
+            (user_id, username, referrer_id)
+        )
+        db.commit()
+        
+        # যদি কেউ রেফার করে থাকে, তবে তাকে একটি মেসেজ দিয়ে জানানো (ঐচ্ছিক)
+        if referrer_id:
+            try:
+                await bot.send_message(referrer_id, f"🎉 আপনার লিংকে ক্লিক করে একজন নতুন ইউজার জয়েন করেছে!")
+            except:
+                pass
     
-    # ৪. মেইন মেনু দেখানো
-    await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
-
+    # বটের ওয়েলকাম মেসেজ
+    welcome_text = (
+        "👋 বটের ভেতরে আপনাকে স্বাগতম!\n\n"
+        "নিচের বাটনগুলো ব্যবহার করে কাজ শুরু করুন।"
+    )
+    await message.answer(welcome_text, reply_markup=main_menu())
+    
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_work_type(message: types.Message, state: FSMContext):
