@@ -481,36 +481,23 @@ async def accept_refer_handler(callback_query: types.CallbackQuery):
     await bot.edit_message_text(f"✅ ইউজার `{new_user_id}` এর রেফারেল একসেপ্ট করা হয়েছে।", 
                                 callback_query.message.chat.id, 
                                 callback_query.message.message_id)
-      # Add Money বাটনের কাজ করার লজিক
+# Add Money বাটনের কাজ করার একমাত্র হ্যান্ডলার
 @dp.callback_query_handler(lambda c: c.data == 'add_money')
 async def process_add_money(callback_query: types.CallbackQuery):
-    # ক্যাপশন থেকে ইউজার আইডি খুঁজে বের করা
     try:
-        # আপনার ক্যাপশন ফরম্যাট অনুযায়ী আইডি আলাদা করা
         caption = callback_query.message.caption
+        # আইডি আলাদা করার সঠিক লজিক
         user_id = caption.split("আইডি:")[1].split("\n")[0].strip("` ")
         
         await bot.send_message(
             callback_query.from_user.id, 
-            f"💰 ইউজার `{user_id}` কে টাকা দিতে চান?\n\n"
-            f"নিচের কমান্ডটি কপি করে টাকার পরিমাণ লিখে পাঠান:\n"
-            f"`/add {user_id} পরিমাণ`", 
-            parse_mode="Markdown"
+            f"💰 ইউজার `{user_id}` কে টাকা দিতে নিচের কমান্ডটি কপি করুন:\n\n"
+            f"`/add {user_id} পরিমাণ`"
         )
-        # বাটনের লোডিং এনিমেশন বন্ধ করা
         await callback_query.answer()
-        
     except Exception as e:
-        await callback_query.answer("ইউজার আইডি খুঁজে পাওয়া যায়নি।")
-@dp.callback_query_handler(lambda c: c.data == 'add_money')
-async def add_money_callback(callback_query: types.CallbackQuery):
-    # ক্যাপশন থেকে আইডি বের করা
-    try:
-        user_id = callback_query.message.caption.split("আইডি: ")[1].split("\n")[0].strip("` ")
-        await bot.send_message(callback_query.from_user.id, f"💰 ইউজার `{user_id}` কে কত টাকা দিতে চান?\nলিখে পাঠান: `/add {user_id} পরিমাণ`")
-        await callback_query.answer()
-    except:
-        await callback_query.answer("আইডি খুঁজে পাওয়া যায়নি!")
+        await callback_query.answer("আইডি খুঁজে পাওয়া যায়নি।")
+        
         
 if __name__ == '__main__':
     keep_alive()
