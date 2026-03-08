@@ -415,32 +415,32 @@ async def send_block_reason(message: types.Message, state: FSMContext):
         await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
     except:
         await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
-# ১. রেফারেল বাটনে ক্লিক করলে যা হবে
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
+    
+    # ১. ডেটাবেস থেকে চেক করা যে এই ইউজারের আইডি কতজনের 'referred_by' কলামে আছে
+    cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
+    total_referrals = cursor.fetchone()[0]
+    
+    # ২. রেফারেল লিংক তৈরি করা
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
-    # অ্যাডমিনকে সরাসরি রিপোর্ট পাঠানো (ইউজারকে কিছু লিখতে হবে না)
-    try:
-        await bot.send_message(
-            ADMIN_ID, 
-            f"📩 **নতুন রেফারেল ক্লিক!**\n"
-            f"👤 ইউজার আইডি: `{user_id}`\n"
-            f"🔗 এই ইউজার রেফারেল সেকশনে প্রবেশ করেছে।"
-        )
-    except:
-        pass
-
-    # ইউজারকে তার লিংক দেখানো
+    # ৩. ইউজারকে তার বর্তমান রেফারেল সংখ্যা দেখানো
     await message.answer(
-        f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
+        f"👥 **আপনার মোট রেফারেল:** {total_referrals} জন\n"
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
-        f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
+        f"✅ নতুন কেউ আপনার লিংকে ক্লিক করে বটে জয়েন করলেই এখানে সংখ্যা বেড়ে যাবে।",
         reply_markup=main_menu()
     )
     
+    # ৪. অ্যাডমিনকে জানানো (ঐচ্ছিক)
+    try:
+        await bot.send_message(ADMIN_ID, f"👤 ইউজার `{user_id}` তার রেফারেল স্ট্যাটাস চেক করেছেন।\nতার মোট রেফারেল: {total_referrals} জন")
+    except:
+        pass
+        
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
 async def forward_photo_to_user(message: types.Message):
