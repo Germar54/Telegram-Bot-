@@ -492,7 +492,35 @@ async def process_add_money(callback_query: types.CallbackQuery):
         await callback_query.answer()
     except Exception as e:
         await callback_query.answer("আইডি খুঁজে পাওয়া যায়নি।")
-    
+@dp.callback_query_handler(lambda c: c.data == 'money')
+async def process_add_money_button(callback_query: types.CallbackQuery):
+    try:
+        caption = callback_query.message.caption
+        # আপনার ক্যাপশন ফরম্যাট অনুযায়ী আইডি আলাদা করার লজিক
+        user_id = caption.split("🆔 **আইডি:** `")[1].split("`")[0].strip()
+        
+        await bot.send_message(
+            callback_query.from_user.id, 
+            f"💰 ইউজার `{user_id}` কে টাকা দিতে নিচের কমান্ডটি কপি করুন:\n\n"
+            f"`/add {user_id} পরিমাণ`"
+        )
+        await callback_query.answer()
+    except Exception as e:
+        await callback_query.answer("❌ আইডি খুঁজে পাওয়া যায়নি।")
+@dp.message_handler(commands=['add'])
+async def admin_add_money_manual(message: types.Message):
+    if message.from_user.id == ADMIN_ID:
+        try:
+            args = message.get_args().split()
+            uid = args[0]
+            amount = float(args[1])
+            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, uid))
+            db.commit()
+            await bot.send_message(uid, f"✅ এডমিন আপনার একাউন্টে {amount} ৳ যোগ করেছে।")
+            await message.answer(f"✅ ইউজার {uid} এর একাউন্টে {amount} ৳ যোগ করা হয়েছে।")
+        except: 
+            await message.answer("⚠️ ফরম্যাট ভুল! লিখুন: `/add আইডি পরিমাণ`")
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
