@@ -428,8 +428,7 @@ async def referral_command(message: types.Message):
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
         f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
         reply_markup=main_menu()
-                           )
-        
+                           )        
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
 async def forward_photo_to_user(message: types.Message):
