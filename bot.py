@@ -54,7 +54,8 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State() 
-
+    waiting_for_target_id = State()
+    waiting_for_admin_msg = State()
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -443,6 +444,39 @@ await bot.send_photo(target_id, message.photo[-1].file_id,
             await message.answer(f"✅ ইউজার `{target_id}` কে ছবিটি পাঠানো হয়েছে।")
         except:
             await message.answer("❌ পাঠানো যায়নি। ফরম্যাট: /msg আইডি ক্যাপশন")
+    # অ্যাডমিন প্যানেল থেকে মেসেজ পাঠানোর সূচনা
+@dp.message_handler(lambda message: message.text == "✉️ মেসেজ পাঠান", user_id=ADMIN_ID)
+async def start_admin_chat(message: types.Message):
+    await BotState.waiting_for_target_id.set()
+    await message.answer("👤 যাকে মেসেজ পাঠাতে চান তার **ইউজার আইডি** দিন:", parse_mode="Markdown")
+
+# আইডি গ্রহণ এবং মেসেজ চাওয়া
+@dp.message_handler(state=BotState.waiting_for_target_id, user_id=ADMIN_ID)
+async def get_admin_target_id(message: types.Message, state: FSMContext):
+    if not message.text.isdigit():
+        await message.answer("❌ আইডি শুধুমাত্র সংখ্যায় হয়। আবার আইডি দিন:")
+        return
+    await state.update_data(target_user_id=message.text)
+    await BotState.waiting_for_admin_msg.set()
+    await message.answer("📝 এবার আপনার **মেসেজটি** লিখুন:")
+
+# মেসেজ পাঠানো এবং শেষ করা
+@dp.message_handler(state=BotState.waiting_for_admin_msg, user_id=ADMIN_ID)
+async def send_admin_msg_final(message: types.Message, state: FSMContext):
+    data = await state.get_data()
+    target_id = data.get('target_user_id')
+    
+    try:
+        await bot.send_message(
+            target_id, 
+            f"🤖 **অ্যাডমিনের পক্ষ থেকে বার্তা:**\n\n{message.text}", 
+            parse_mode="Markdown"
+        )
+        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
+    except Exception as e:
+        await message.answer(f"❌ এরর: {str(e)}")
+    
+    await state.finish()
     
 if __name__ == '__main__':
     keep_alive()
