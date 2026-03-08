@@ -417,66 +417,41 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     except:
         await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
     
-    # স্টেট ক্লিয়ার করা
-    await state.finish()
-# লাইন ৪১১ এ এটি দিয়ে রিপ্লেস করুন
-@dp.message_handler(lambda message: "Referral" in message.text)
-async def referral_handler(message: types.Message):
-    user_id = message.from_user.id
-    cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
-    total_ref = cursor.fetchone()[0]
-    
-    bot_info = await bot.get_me()
-    ref_link = f"https://t.me/{bot_info.username}?start={user_id}"
-    
-    text = (
-        f"👥 **আপনার মোট রেফারেল:** `{total_ref}` জন\n"
-        f"🔗 **আপনার লিংক:** `{ref_link}`\n\n"
-        "আপনি যার কাছ থেকে এই বটের লিংক পেয়েছেন, তার ইউজারনেম বা লিংকটি নিচে লিখে পাঠান:"
-    )
-    await message.answer(text, parse_mode="Markdown")
-    await BotState.waiting_for_referrer_info.set()
-    
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def send_to_admin(message: types.Message, state: FSMContext):
-    referrer_data = message.text
+    referrer_data = message.text # ইউজারের পাঠানো ইউজারনেম বা লিংক
     user_id = message.from_user.id
-    ADMIN_ID = 8474225355 
-
+    
+    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন
     admin_kb = types.InlineKeyboardMarkup()
     admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
 
-    await bot.send_message(ADMIN_ID, f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}", reply_markup=admin_kb, parse_mode="Markdown")
-    await state.finish()
-    await message.answer("ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।", reply_markup=main_menu())
-    # ডাটাবেসে referred_by কলামটি অটোমেটিক যোগ করার জন্য (যদি না থাকে)
-try:
-    cursor.execute("ALTER TABLE users ADD COLUMN referred_by TEXT")
-    db.commit()
-except:
-    pass
-
-# রেফারেল বাটন একসেপ্ট করার হ্যান্ডলার (এটি আপনার ফাইলে নেই)
-@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
-async def accept_refer_callback(callback_query: types.CallbackQuery):
-    user_id = callback_query.data.split('_')[1]
-    await bot.answer_callback_query(callback_query.id, text="রেফারেল একসেপ্ট হয়েছে!")
-    await bot.edit_message_text(f"✅ ইউজার `{user_id}` এর রেফারেল আপনি একসেপ্ট করেছেন।", 
-                                callback_query.message.chat.id, 
-                                callback_query.message.message_id)
-
-
-    # অ্যাডমিন যখন 'Accept Refer' বাটনে ক্লিক করবেন তখন রেফারার আইডি আপডেট হবে
-@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
-async def accept_refer_handler(callback_query: types.CallbackQuery):
-    # ডাটা থেকে নতুন ইউজার আইডি আলাদা করা
-    new_user_id = callback_query.data.split('_')[1]
+    try:
+        # ১. অ্যাডমিনকে রিপোর্ট পাঠানো (ADMIN_ID সেটিংস থেকে আসবে)
+        await bot.send_message(
+            ADMIN_ID, 
+            f"📩 **নতুন রেফারেল রিপোর্ট!**\n"
+            f"👤 ইউজার: `{user_id}`\n"
+            f"🔗 কার মাধ্যমে এসেছে: {referrer_data}",
+            reply_markup=admin_kb,
+            parse_mode="Markdown"
+        )
+        
+        # ২. ইউজারকে সাথে সাথে রিপ্লাই দেওয়া
+        await message.answer(
+            f"✅ ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।\n"
+            f"📝 আপনি পাঠিয়েছেন: `{referrer_data}`", 
+            reply_markup=main_menu(),
+            parse_mode="Markdown"
+        )
+        
+        # ৩. সবচেয়ে গুরুত্বপূর্ণ: স্টেট ক্লিয়ার করা যাতে অন্য বাটন ক্লিক করলে ঝামেলা না হয়
+        await state.finish()
+        
+    except Exception as e:
+        await message.answer("⚠️ তথ্য পাঠানো যায়নি। আবার চেষ্টা করুন।")
+        await state.finish()
     
-    # আপনি যেহেতু ম্যানুয়ালি চেক করছেন, তাই ডাটাবেসে এটি সফল হিসেবে মার্ক করার কোড:
-    await bot.answer_callback_query(callback_query.id, text="রেফারেল সফলভাবে একসেপ্ট করা হয়েছে!")
-    await bot.edit_message_text(f"✅ ইউজার `{new_user_id}` এর রেফারেল একসেপ্ট করা হয়েছে।", 
-                                callback_query.message.chat.id, 
-                                callback_query.message.message_id)
    # ছবি বা টেক্সট সহ মেসেজ পাঠানো: /msg আইডি আপনার মেসেজ
 @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
 async def send_user_message(message: types.Message):
