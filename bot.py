@@ -422,16 +422,6 @@ async def referral_command(message: types.Message):
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
-    # অ্যাডমিনকে সরাসরি রিপোর্ট পাঠানো (ইউজারকে কিছু লিখতে হবে না)
-    try:
-        await bot.send_message(
-            ADMIN_ID, 
-            f"📩 **নতুন রেফারেল ক্লিক!**\n"
-            f"👤 ইউজার আইডি: `{user_id}`\n"
-            f"🔗 এই ইউজার রেফারেল সেকশনে প্রবেশ করেছে।"
-        )
-    except:
-        pass
 
     # ইউজারকে তার লিংক দেখানো
     await message.answer(
