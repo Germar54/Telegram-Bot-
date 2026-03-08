@@ -176,10 +176,8 @@ async def get_2fa(message: types.Message, state: FSMContext):
 
     db.commit()
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    await message.answer("✅ আপনার তথ্য জমা হয়েছে! \nরিপোর্ট আসলে আপনি বটে পেয়ে যাবেন \n\n **Tips:** আপনি আমাদের [গ্রুপে জয়েন হন](https://t.me/instafbhub)",
-    parse_mode="MarkdownV2",
-    reply_markup=main_menu())
-    await state.finish()
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে\!\nরিপোর্ট আসলে আপনি বটে পেয়ে যাবেন\n\n**Tips\:** আপনি আমাদের [গ্রুপে জয়েন হন](https://t.me/tafbhub)", parse_mode="MarkdownV2", reply_markup=main_menu())
+    
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
 @dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
