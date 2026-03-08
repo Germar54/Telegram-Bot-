@@ -44,11 +44,11 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 # এটি এককালীন কাজ, কলামটি যোগ করার জন্য
 try:
-cursor.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
-db.commit()
+    cursor.execute("ALTER TABLE users ADD COLUMN referred_by INTEGER")
+    db.commit()
 except:
     # যদি কলামটি আগে থেকেই থাকে, তবে এরর আসবে এবং সেটি ইগনোর হবে
-pass
+     pass
 
 class BotState(StatesGroup):
     waiting_for_file = State()
