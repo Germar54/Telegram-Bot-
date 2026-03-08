@@ -502,7 +502,16 @@ async def process_add_money(callback_query: types.CallbackQuery):
         
     except Exception as e:
         await callback_query.answer("ইউজার আইডি খুঁজে পাওয়া যায়নি।")
-    #
+@dp.callback_query_handler(lambda c: c.data == 'add_money')
+async def add_money_callback(callback_query: types.CallbackQuery):
+    # ক্যাপশন থেকে আইডি বের করা
+    try:
+        user_id = callback_query.message.caption.split("আইডি: ")[1].split("\n")[0].strip("` ")
+        await bot.send_message(callback_query.from_user.id, f"💰 ইউজার `{user_id}` কে কত টাকা দিতে চান?\nলিখে পাঠান: `/add {user_id} পরিমাণ`")
+        await callback_query.answer()
+    except:
+        await callback_query.answer("আইডি খুঁজে পাওয়া যায়নি!")
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
