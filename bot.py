@@ -438,7 +438,7 @@ async def forward_photo_to_user(message: types.Message):
             args = message.caption.split(maxsplit=2)
             target_id = args[1]
             user_msg = args[2] if len(args) > 2 else ""
-    await bot.send_photo(target_id, message.photo[-1].file_id, 
+await bot.send_photo(target_id, message.photo[-1].file_id, 
                                  caption=f"📩 **এডমিনের পক্ষ থেকে:**\n\n{user_msg}", 
                                  parse_mode="Markdown")
             await message.answer(f"✅ ইউজার `{target_id}` কে ছবিটি পাঠানো হয়েছে।")
