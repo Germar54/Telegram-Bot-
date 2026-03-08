@@ -11,8 +11,8 @@ from aiogram.dispatcher.filters.state import State, StatesGroup
 # ==========================================
 # ১. সেটিংস ও ডাটাবেস
 # ==========================================
-API_TOKEN = "8610647180:AAEBS-FwjyU4VhzrTIf5aB5CcfLBRNI-W2E"
-ADMIN_ID = 8474225355
+API_TOKEN = os.getenv('BOT_TOKEN')
+ADMIN_ID = int(os.getenv('ADMIN_ID'))
 
 app = Flask('')
 @app.route('/')
@@ -41,21 +41,7 @@ db.commit()
 
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
-db.commit() 
-try:
-    cursor.execute("ALTER TABLE users ADD COLUMN username TEXT")
-    db.commit()
-except:
-    pass
-
-try:
-    cursor.execute("ALTER TABLE users ADD COLUMN referrer_id INTEGER")
-    db.commit()
-except:
-    pass
-    
-    
-    
+db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
@@ -68,9 +54,7 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State() 
-    # এই লাইনটি আপনার ক্লাসে যোগ করতে হবে
-    waiting_for_referrer_info = State()
-    
+
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -80,45 +64,36 @@ def main_menu():
     keyboard.add("Work start 🔥", "Withdraw")
     keyboard.add("👥 Referral")
     return keyboard
-@dp.message_handler(commands=['start'])
-async def start_command(message: types.Message):
-    user_id = message.from_user.id
-    username = message.from_user.username or "No Username"
-    args = message.get_args() # লিংকের শেষে থাকা আইডিটি ধরবে (যেমন: ?start=123)
+# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
+@dp.message_handler(commands=['start'], state="*")
+async def start(message: types.Message, state: FSMContext):
+    await state.finish() 
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
+    db.commit()
 
-    # চেক করা ইউজার আগে থেকে ডেটাবেসে আছে কি না
-    cursor.execute("SELECT user_id FROM users WHERE user_id = ?", (user_id,))
-    user_exists = cursor.fetchone()
+    # ১. এখানে বাটন তৈরি হচ্ছে
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
+    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
+    url_button = types.InlineKeyboardButton(text="🚨Ruls And Method", url="https://t.me/instafbhub") 
+    help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
+    inline_kb.add(url_button, help_button)
+    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
+        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
+    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
+📌 Instagram 00 Follower (2FA): ২.৩০ ৳
+📌 Instagram Cookies: ৩.৯০ ৳
+📌 Instagram Mother: ৭ ৳
+📌 Facebook FBc00Fnd: ৫.৮০ ৳
 
-    if not user_exists:
-        # ইউজার যদি একদম নতুন হয় এবং রেফারেল লিংকে ক্লিক করে আসে
-        referrer_id = None
-        if args and args.isdigit():
-            referrer_id = int(args)
-            if referrer_id == user_id: # নিজের লিংকে নিজে ক্লিক করলে কাউন্ট হবে না
-                referrer_id = None
+  Support: @Dinanhaji"""
 
-        # নতুন ইউজারকে ডেটাবেসে সেভ করা (রেফারার আইডি সহ)
-        cursor.execute(
-            "INSERT INTO users (user_id, username, referred_by) VALUES (?, ?, ?)", 
-            (user_id, username, referrer_id)
-        )
-        db.commit()
-        
-        # যদি কেউ রেফার করে থাকে, তবে তাকে একটি মেসেজ দিয়ে জানানো (ঐচ্ছিক)
-        if referrer_id:
-            try:
-                await bot.send_message(referrer_id, f"🎉 আপনার লিংকে ক্লিক করে একজন নতুন ইউজার জয়েন করেছে!")
-            except:
-                pass
+    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
+    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
-    # বটের ওয়েলকাম মেসেজ
-    welcome_text = (
-        "👋 বটের ভেতরে আপনাকে স্বাগতম!\n\n"
-        "নিচের বাটনগুলো ব্যবহার করে কাজ শুরু করুন।"
-    )
-    await message.answer(welcome_text, reply_markup=main_menu())
-    
+    # ৪. মেইন মেনু দেখানো
+    await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
+
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_work_type(message: types.Message, state: FSMContext):
@@ -444,56 +419,17 @@ async def send_block_reason(message: types.Message, state: FSMContext):
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
-    
-    # ডেটাবেস থেকে ইউজারের মোট রেফারেল সংখ্যা গুনে আনা
-    try:
-        cursor.execute("SELECT COUNT(*) FROM users WHERE referred_by = ?", (user_id,))
-        total_referrals = cursor.fetchone()[0]
-    except:
-        total_referrals = 0
-    
-    # রেফারেল লিঙ্ক তৈরি
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
+
+    # ইউজারকে তার লিংক দেখানো
     await message.answer(
-        f"👥 **আপনার মোট রেফারেল:** `{total_referrals}` জন\n"
+        f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
-        f"❓ **আপনি কার কাছ থেকে এই বটের লিঙ্ক পেয়েছেন?**\n"
-        f"তার ইউজারনেম বা আইডিটি নিচে লিখে পাঠান:"
-    )
-    # ইউজারের পরবর্তী উত্তরের জন্য বটকে "অপেক্ষা" করানো (State সেট করা)
-    await BotState.waiting_for_referrer_info.set()
-
-# ২. ইউজার যখন নাম লিখে পাঠাবে, সেটি অ্যাডমিনকে জানানো
-@dp.message_handler(state=BotState.waiting_for_referrer_info)
-async def send_to_admin_refer(message: types.Message, state: FSMContext):
-    referrer_info = message.text  # ইউজার যা লিখে পাঠাল
-    user_id = message.from_user.id
-    
-    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন তৈরি করা
-    admin_kb = types.InlineKeyboardMarkup()
-    admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
-
-    try:
-        # অ্যাডমিনকে তথ্য পাঠানো (এখানে গোল ব্র্যাকেট ')' ব্যবহার করবেন)
-        await bot.send_message(
-            ADMIN_ID, 
-            f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার আইডি: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_info}",
-            reply_markup=admin_kb,
-            parse_mode="Markdown"
-        )
-        
-        # ইউজারকে সাথে সাথে একটি ধন্যবাদ মেসেজ দেওয়া
-        await message.answer("✅ আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
-        
-        # স্টেট বন্ধ করা (এটি সবচেয়ে জরুরি যাতে অন্য বাটন কাজ করে)
-        await state.finish()
-        
-    except:
-        await message.answer("⚠️ তথ্য পাঠানো যায়নি। আবার চেষ্টা করুন।")
-        await state.finish()
-    
+        f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
+        reply_markup=main_menu()
+                           )
         
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
@@ -503,14 +439,4 @@ async def forward_photo_to_user(message: types.Message):
             args = message.caption.split(maxsplit=2)
             target_id = args[1]
             user_msg = args[2] if len(args) > 2 else ""
-            
-            await bot.send_photo(target_id, message.photo[-1].file_id, 
-                                 caption=f"📩 **এডমিনের পক্ষ থেকে:**\n\n{user_msg}", 
-                                 parse_mode="Markdown")
-            await message.answer(f"✅ ইউজার `{target_id}` কে ছবিটি পাঠানো হয়েছে।")
-        except:
-            await message.answer("❌ পাঠানো যায়নি। ফরম্যাট: /msg আইডি ক্যাপশন")
     
-if __name__ == '__main__':
-    keep_alive()
-    executor.start_polling(dp, skip_updates=True)                    
