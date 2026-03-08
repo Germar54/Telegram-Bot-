@@ -53,8 +53,7 @@ class BotState(StatesGroup):
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
-    waiting_for_block_reason = State()
-    waiting_for_referrer_info = State() 
+    waiting_for_block_reason = State() 
 
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
@@ -416,53 +415,44 @@ async def send_block_reason(message: types.Message, state: FSMContext):
         await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
     except:
         await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
+# ১. রেফারেল বাটনে ক্লিক করলে যা হবে
+@dp.message_handler(lambda message: message.text == "👥 Referral")
+async def referral_command(message: types.Message):
+    user_id = message.from_user.id
+    # বটের ইউজারনেমসহ অটোমেটিক রেফারেল লিংক তৈরি
+    bot_info = await bot.get_me()
+    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
+    await message.answer(
+        f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
+        f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
+        f"আপনি যার কাছ থেকে এই বটের লিঙ্ক পেয়েছেন, তার ইউজারনেম বা লিঙ্কটি নিচে লিখে পাঠান:"
+    )
+    # ইউজারের উত্তরের জন্য স্টেট সেট করা
+    await BotState.waiting_for_referrer_info.set()
+
+# ২. ইউজার যখন রেফারেল তথ্য লিখে পাঠাবে (মেইন হ্যান্ডলার)
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
-async def send_to_admin(message: types.Message, state: FSMContext):
-    referrer_data = message.text # ইউজার যা পাঠাবে
+async def send_to_admin_refer(message: types.Message, state: FSMContext):
+    referrer_data = message.text # ইউজারের পাঠানো ইউজারনেম
     user_id = message.from_user.id
     
-    # অ্যাডমিনের জন্য বাটন
+    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন তৈরি
     admin_kb = types.InlineKeyboardMarkup()
     admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
 
     try:
-        # ১. অ্যাডমিনকে পাঠানো
+        # অ্যাডমিনকে রিপোর্ট পাঠানো (এখানে ব্র্যাকেট ঠিক করে দেওয়া হয়েছে)
         await bot.send_message(
             ADMIN_ID, 
-            f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}",
+            f"📩 **নতুন রেফারেল রিপোর্ট!**\n"
+            f"👤 ইউজার: `{user_id}`\n"
+            f"🔗 কার মাধ্যমে এসেছে: {referrer_data}",
             reply_markup=admin_kb,
             parse_mode="Markdown"
         )
-        # ২. ইউজারকে সাথে সাথে রিপ্লাই দেওয়া (এটি না দিলে বট চুপ করে থাকে)
-        await message.answer("✅ আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
         
-        # ৩. সবচেয়ে গুরুত্বপূর্ণ: স্টেট বন্ধ করা (এটি না করলে অন্য বাটন কাজ করে না)
-        await state.finish()
-        
-    except Exception as e:
-        await message.answer("⚠️ তথ্য পাঠানো যায়নি।")
-        await state.finish()
-    
-   # ছবি বা টেক্সট সহ মেসেজ পাঠানো: /msg আইডি আপনার মেসেজ
-@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
-async def send_user_message(message: types.Message):
-    try:
-        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
-        args = message.get_args().split(maxsplit=1)
-        
-        if not args:
-            return await message.answer("⚠️ ফরম্যাট: `/msg আইডি মেসেজটি লিখুন` \n(অথবা ছবির ক্যাপশনেও এটি লিখতে পারেন)")
-        
-        target_id = args[0]
-        user_msg = args[1] if len(args) > 1 else ""
-        
-        # ইউজারের কাছে মেসেজ পাঠানো
-        await bot.send_message(target_id, f"📩 **এডমিনের পক্ষ থেকে মেসেজ:**\n\n{user_msg}", parse_mode="Markdown")
-        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজটি পাঠানো হয়েছে।")
-        
-    except Exception as e:
-        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। আইডি চেক করুন।")
+        # ইউজারকে সাথে সাথে কনফার্মেশন রিপ্লাই দেওয়া [cite: Screenshot_2
 
 # ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
 @dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
