@@ -481,7 +481,42 @@ async def accept_refer_handler(callback_query: types.CallbackQuery):
     await bot.edit_message_text(f"✅ ইউজার `{new_user_id}` এর রেফারেল একসেপ্ট করা হয়েছে।", 
                                 callback_query.message.chat.id, 
                                 callback_query.message.message_id)
-                        
+   # ছবি বা টেক্সট সহ মেসেজ পাঠানো: /msg আইডি আপনার মেসেজ
+@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
+async def send_user_message(message: types.Message):
+    try:
+        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
+        args = message.get_args().split(maxsplit=1)
+        
+        if not args:
+            return await message.answer("⚠️ ফরম্যাট: `/msg আইডি মেসেজটি লিখুন` \n(অথবা ছবির ক্যাপশনেও এটি লিখতে পারেন)")
+        
+        target_id = args[0]
+        user_msg = args[1] if len(args) > 1 else ""
+        
+        # ইউজারের কাছে মেসেজ পাঠানো
+        await bot.send_message(target_id, f"📩 **এডমিনের পক্ষ থেকে মেসেজ:**\n\n{user_msg}", parse_mode="Markdown")
+        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজটি পাঠানো হয়েছে।")
+        
+    except Exception as e:
+        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। আইডি চেক করুন।")
+
+# ছবির মাধ্যমে মেসেজ পাঠানোর জন্য (ঐচ্ছিক)
+@dp.message_handler(content_types=['photo'], user_id=ADMIN_ID)
+async def forward_photo_to_user(message: types.Message):
+    if message.caption and message.caption.startswith('/msg'):
+        try:
+            args = message.caption.split(maxsplit=2)
+            target_id = args[1]
+            user_msg = args[2] if len(args) > 2 else ""
+            
+            await bot.send_photo(target_id, message.photo[-1].file_id, 
+                                 caption=f"📩 **এডমিনের পক্ষ থেকে:**\n\n{user_msg}", 
+                                 parse_mode="Markdown")
+            await message.answer(f"✅ ইউজার `{target_id}` কে ছবিটি পাঠানো হয়েছে।")
+        except:
+            await message.answer("❌ পাঠানো যায়নি। ফরম্যাট: /msg আইডি ক্যাপশন")
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)                    
