@@ -440,4 +440,4 @@ async def referral_handler(message: types.Message):
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def send_to_admin(message: types.Message, state: FSMContext):
     referrer_data = message.text
-        
+                        
