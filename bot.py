@@ -432,9 +432,8 @@ async def send_to_admin(message: types.Message, state: FSMContext):
             ADMIN_ID, 
             f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}",
             reply_markup=admin_kb,
-            parse_mode="Markdown")
-        
-        
+            parse_mode="Markdown"
+        )
         # ২. ইউজারকে সাথে সাথে রিপ্লাই দেওয়া (এটি না দিলে বট চুপ করে থাকে)
         await message.answer("✅ আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
         
