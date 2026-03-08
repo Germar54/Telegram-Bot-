@@ -187,27 +187,33 @@ async def refresh_to_main(message: types.Message, state: FSMContext):
     await state.finish() 
     # মেইন মেনুতে ফিরিয়ে নিবে
     await message.answer("✅ আপনি মেইন মেনুতে ফিরে এসেছেন।", reply_markup=main_menu())
-
+    
 @dp.message_handler(content_types=['document'], state=BotState.waiting_for_file)
 async def handle_file(message: types.Message, state: FSMContext):
     keyboard = types.InlineKeyboardMarkup()
-    # বাটনের নাম দিলাম 'money'
-    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data="money"))
+    # Add Money button ebong profile link caption eksathe deya holo
+    keyboard.add(types.InlineKeyboardButton("Add Money 💰", callback_data="add_money"))
     
+    import datetime
+    today = datetime.date.today().strftime("%Y-%m-%d")
+    cursor.execute("INSERT OR IGNORE INTO stats (user_id, date) VALUES (?, ?)", (message.from_user.id, today))
+    cursor.execute("UPDATE stats SET file_count = file_count + 1 WHERE user_id=? AND date=?", (message.from_user.id, today))
+    db.commit()
+
     caption = (f"📩 **নতুন ফাইল জমা পড়েছে!**\n\n"
                f"👤 **নাম:** {message.from_user.full_name}\n"
                f"🆔 **আইডি:** `{message.from_user.id}`\n"
-               f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})\n"
-               f"━━━━━━━━━━━━━━━\n"
-               f"🆔 **আইডি:** `{message.from_user.id}`")
+               f"🔗 **প্রোফাইল:** [এখানে ক্লিক করুন](tg://user?id={message.from_user.id})")
 
     await bot.send_document(ADMIN_ID, message.document.file_id, 
                            caption=caption, 
                            reply_markup=keyboard, 
                            parse_mode="Markdown")
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে।")
-    await state.finish()
     
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স এড করে দিবে।")
+    await state.finish()
+
+
 # ==========================================
 # ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
 # ==========================================
@@ -434,93 +440,4 @@ async def referral_handler(message: types.Message):
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def send_to_admin(message: types.Message, state: FSMContext):
     referrer_data = message.text
-    user_id = message.from_user.id
-    ADMIN_ID = 8474225355 
-
-    admin_kb = types.InlineKeyboardMarkup()
-    admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
-
-    await bot.send_message(ADMIN_ID, f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}", reply_markup=admin_kb, parse_mode="Markdown")
-    await state.finish()
-    await message.answer("ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।", reply_markup=main_menu())
-    # ডাটাবেসে referred_by কলামটি অটোমেটিক যোগ করার জন্য (যদি না থাকে)
-try:
-    cursor.execute("ALTER TABLE users ADD COLUMN referred_by TEXT")
-    db.commit()
-except:
-    pass
-
-# রেফারেল বাটন একসেপ্ট করার হ্যান্ডলার (এটি আপনার ফাইলে নেই)
-@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
-async def accept_refer_callback(callback_query: types.CallbackQuery):
-    user_id = callback_query.data.split('_')[1]
-    await bot.answer_callback_query(callback_query.id, text="রেফারেল একসেপ্ট হয়েছে!")
-    await bot.edit_message_text(f"✅ ইউজার `{user_id}` এর রেফারেল আপনি একসেপ্ট করেছেন।", 
-                                callback_query.message.chat.id, 
-                                callback_query.message.message_id)
-
-# ফাইল শেষ করার সঠিক নিয়ম
-if __name__ == '__main__':
-    keep_alive()
-    executor.start_polling(dp, skip_updates=True)
-    
-    # অ্যাডমিন যখন 'Accept Refer' বাটনে ক্লিক করবেন তখন রেফারার আইডি আপডেট হবে
-@dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
-async def accept_refer_handler(callback_query: types.CallbackQuery):
-    # ডাটা থেকে নতুন ইউজার আইডি আলাদা করা
-    new_user_id = callback_query.data.split('_')[1]
-    
-    # আপনি যেহেতু ম্যানুয়ালি চেক করছেন, তাই ডাটাবেসে এটি সফল হিসেবে মার্ক করার কোড:
-    await bot.answer_callback_query(callback_query.id, text="রেফারেল সফলভাবে একসেপ্ট করা হয়েছে!")
-    await bot.edit_message_text(f"✅ ইউজার `{new_user_id}` এর রেফারেল একসেপ্ট করা হয়েছে।", 
-                                callback_query.message.chat.id, 
-                                callback_query.message.message_id)
-
-      # এখানেও নাম দিলাম 'money' যাতে উপরের সাথে মিলে যায়
-@dp.callback_query_handler(lambda c: c.data == 'money')
-async def process_add_money(callback_query: types.CallbackQuery):
-    try:
-        caption = callback_query.message.caption
-        # আইডি বের করার সহজ উপায়
-        user_id = caption.split("🆔 **আইডি:** `")[1].split("`")[0].strip()
         
-        await bot.send_message(
-            callback_query.from_user.id, 
-            f"💰 ইউজার `{user_id}` কে টাকা দিতে নিচের কমান্ডটি কপি করুন:\n\n"
-            f"`/add {user_id} পরিমাণ`"
-        )
-        await callback_query.answer()
-    except Exception as e:
-        await callback_query.answer("আইডি খুঁজে পাওয়া যায়নি।")
-@dp.callback_query_handler(lambda c: c.data == 'money')
-async def process_add_money_button(callback_query: types.CallbackQuery):
-    try:
-        caption = callback_query.message.caption
-        # আপনার ক্যাপশন ফরম্যাট অনুযায়ী আইডি আলাদা করার লজিক
-        user_id = caption.split("🆔 **আইডি:** `")[1].split("`")[0].strip()
-        
-        await bot.send_message(
-            callback_query.from_user.id, 
-            f"💰 ইউজার `{user_id}` কে টাকা দিতে নিচের কমান্ডটি কপি করুন:\n\n"
-            f"`/add {user_id} পরিমাণ`"
-        )
-        await callback_query.answer()
-    except Exception as e:
-        await callback_query.answer("❌ আইডি খুঁজে পাওয়া যায়নি।")
-@dp.message_handler(commands=['add'])
-async def admin_add_money_manual(message: types.Message):
-    if message.from_user.id == ADMIN_ID:
-        try:
-            args = message.get_args().split()
-            uid = args[0]
-            amount = float(args[1])
-            cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount, uid))
-            db.commit()
-            await bot.send_message(uid, f"✅ এডমিন আপনার একাউন্টে {amount} ৳ যোগ করেছে।")
-            await message.answer(f"✅ ইউজার {uid} এর একাউন্টে {amount} ৳ যোগ করা হয়েছে।")
-        except: 
-            await message.answer("⚠️ ফরম্যাট ভুল! লিখুন: `/add আইডি পরিমাণ`")
-        
-if __name__ == '__main__':
-    keep_alive()
-    executor.start_polling(dp, skip_updates=True)
