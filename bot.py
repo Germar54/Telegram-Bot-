@@ -419,37 +419,30 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def send_to_admin(message: types.Message, state: FSMContext):
-    referrer_data = message.text # ইউজারের পাঠানো ইউজারনেম বা লিংক
+    referrer_data = message.text # ইউজার যা পাঠাবে
     user_id = message.from_user.id
     
-    # অ্যাডমিনের জন্য এক্সেপ্ট বাটন
+    # অ্যাডমিনের জন্য বাটন
     admin_kb = types.InlineKeyboardMarkup()
     admin_kb.add(types.InlineKeyboardButton("✅ Accept Refer", callback_data=f"accept_{user_id}"))
 
     try:
-        # ১. অ্যাডমিনকে রিপোর্ট পাঠানো (ADMIN_ID সেটিংস থেকে আসবে)
+        # ১. অ্যাডমিনকে পাঠানো
         await bot.send_message(
             ADMIN_ID, 
-            f"📩 **নতুন রেফারেল রিপোর্ট!**\n"
-            f"👤 ইউজার: `{user_id}`\n"
-            f"🔗 কার মাধ্যমে এসেছে: {referrer_data}",
+            f"📩 **নতুন রেফারেল রিপোর্ট!**\n👤 ইউজার: `{user_id}`\n🔗 কার মাধ্যমে এসেছে: {referrer_data}",
             reply_markup=admin_kb,
-            parse_mode="Markdown"
-        )
+            parse_mode="Markdown")
         
-        # ২. ইউজারকে সাথে সাথে রিপ্লাই দেওয়া
-        await message.answer(
-            f"✅ ধন্যবাদ! আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে।\n"
-            f"📝 আপনি পাঠিয়েছেন: `{referrer_data}`", 
-            reply_markup=main_menu(),
-            parse_mode="Markdown"
-        )
         
-        # ৩. সবচেয়ে গুরুত্বপূর্ণ: স্টেট ক্লিয়ার করা যাতে অন্য বাটন ক্লিক করলে ঝামেলা না হয়
+        # ২. ইউজারকে সাথে সাথে রিপ্লাই দেওয়া (এটি না দিলে বট চুপ করে থাকে)
+        await message.answer("✅ আপনার তথ্যটি অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
+        
+        # ৩. সবচেয়ে গুরুত্বপূর্ণ: স্টেট বন্ধ করা (এটি না করলে অন্য বাটন কাজ করে না)
         await state.finish()
         
     except Exception as e:
-        await message.answer("⚠️ তথ্য পাঠানো যায়নি। আবার চেষ্টা করুন।")
+        await message.answer("⚠️ তথ্য পাঠানো যায়নি।")
         await state.finish()
     
    # ছবি বা টেক্সট সহ মেসেজ পাঠানো: /msg আইডি আপনার মেসেজ
