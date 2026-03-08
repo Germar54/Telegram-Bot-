@@ -487,7 +487,8 @@ async def process_add_money(callback_query: types.CallbackQuery):
     try:
         caption = callback_query.message.caption
         # আইডি আলাদা করার সঠিক লজিক
-        user_id = caption.split("আইডি:")[1].split("\n")[0].strip("` ")
+        
+        user_id = caption.split("আইডি:** ")[1].split("")[0].strip
         
         await bot.send_message(
             callback_query.from_user.id, 
