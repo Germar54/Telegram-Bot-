@@ -465,11 +465,7 @@ async def accept_refer_callback(callback_query: types.CallbackQuery):
                                 callback_query.message.chat.id, 
                                 callback_query.message.message_id)
 
-# ফাইল শেষ করার সঠিক নিয়ম
-if __name__ == '__main__':
-    keep_alive()
-    executor.start_polling(dp, skip_updates=True)
-    
+
     # অ্যাডমিন যখন 'Accept Refer' বাটনে ক্লিক করবেন তখন রেফারার আইডি আপডেট হবে
 @dp.callback_query_handler(lambda c: c.data.startswith('accept_'))
 async def accept_refer_handler(callback_query: types.CallbackQuery):
