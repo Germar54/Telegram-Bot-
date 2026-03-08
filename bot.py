@@ -61,7 +61,9 @@ class BotState(StatesGroup):
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
     waiting_for_block_reason = State() 
-
+    # এই লাইনটি আপনার ক্লাসে যোগ করতে হবে
+    waiting_for_referrer_info = State()
+    
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
