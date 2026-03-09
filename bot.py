@@ -106,7 +106,7 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
     # ৪. মেইন মেনু দেখানো
-    await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
+    await message.answer("✅Instagram 2fa : 🔥Work Start\n🟢 Instagram cookies & FB 00 Fnd 2fa:\n🔥WorkStart v2", reply_markup=main_menu())
     
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
@@ -147,13 +147,13 @@ async def process_callback_work_type(callback_query: types.CallbackQuery):
 @dp.message_handler(state=BotState.waiting_for_single_user)
 async def get_id(message: types.Message, state: FSMContext):
     await state.update_data(u_id=message.text)
-    await message.answer("🔙 মেন মেনুতে ফিরে যেতে/start\n🔑 এবার পাসওয়ার্ড (Password) দিন:")
+    await message.answer("🔙 মেইন মেনুতে ফিরে যেতে/start\n🔑 এবার পাসওয়ার্ড (Password) দিন:")
     await BotState.waiting_for_single_pass.set()
 
 @dp.message_handler(state=BotState.waiting_for_single_pass)
 async def get_pass(message: types.Message, state: FSMContext):
     await state.update_data(u_pass=message.text)
-    await message.answer("🔙 মেন মেনুতে ফিরে যেতে/start\n🔐 এবার টু-এফা (2FA Code) দিন:")
+    await message.answer("🔙 মেইন মেনুতে ফিরে যেতে/start\n🔐 এবার টু-এফা (2FA Code) দিন:")
     await BotState.waiting_for_single_2fa.set()
 # ১৪৭ নম্বর লাইনে এটি বসান (যদি না থাকে)
 
@@ -197,7 +197,7 @@ async def get_2fa(message: types.Message, state: FSMContext):
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount_to_add, message.from_user.id))
     db.commit()   
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    await message.answer("✅ আপনার তথ্য জমা হয়েছে!", reply_markup=main_menu())
+    await message.answer("✅ আপনার তথ্য জমা হয়েছে!\n📌 মেন মেনুতে ফিরে যেতে/start", reply_markup=main_menu())
     
 # ৩. রিফ্রেশ বাটনের লজিক (state="*" যোগ করা হয়েছে যাতে যেকোনো অবস্থায় এটি কাজ করে)
 @dp.message_handler(lambda message: message.text == "🔄 রিফ্রেশ", state="*")
@@ -229,7 +229,7 @@ async def handle_file(message: types.Message, state: FSMContext):
                            reply_markup=keyboard, 
                            parse_mode="Markdown")
     
-    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \nএডমিন চেক করে ব্যালেন্স এড করে দিবে।")
+    await message.answer("✅ আপনার ফাইলটি জমা হয়েছে। \n🔥এডমিন চেক করে ব্যালেন্স এড করে দিবে।")
     await state.finish()
 
 
@@ -249,7 +249,7 @@ async def withdraw_process(message: types.Message):
         keyboard = types.InlineKeyboardMarkup()
         keyboard.add(types.InlineKeyboardButton("Change Payment Method ⚙️", callback_data="change_method"))
         
-        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\nআপনি কত টাকা উইথড্র করতে চান লিখুন (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
+        await message.answer(f"💰 আপনার বর্তমান ব্যালেন্স: {balance} ৳\n📍 বর্তমান পেমেন্ট এড্রেস: {address}\n\n🚨আপনি কত টাকা উইথড্র করতে চান লিখুন\n💡 (অবশ্যই ৫০ টাকার উপরে হতে হবে ।):", reply_markup=keyboard)
         await BotState.waiting_for_withdraw_amount.set()
 
 @dp.callback_query_handler(text="change_method", state="*")
@@ -263,7 +263,7 @@ async def change_method_callback(call: types.CallbackQuery, state: FSMContext):
 async def save_address(message: types.Message, state: FSMContext):
     cursor.execute("UPDATE users SET address=? WHERE user_id=?", (message.text, message.from_user.id))
     db.commit()
-    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।\n🔥এখন আবার 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
+    await message.answer(f"✅ সফল! আপনার পেমেন্ট এড্রেস আপডেট হয়েছে।\n🔥এখন 'Withdraw' বাটনে ক্লিক করে টাকা তুলতে পারেন।", reply_markup=main_menu())
     await state.finish()
 
 @dp.message_handler(state=BotState.waiting_for_withdraw_amount)
@@ -404,7 +404,7 @@ async def admin_unblock(message: types.Message):
         cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
         db.commit()
         await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
-        await bot.send_message(uid, "✅ আপনাকে আনব্লক করা হয়েছে।")
+        await bot.send_message(uid, "✅ আপনাকে আনব্লক করা হয়েছে।\nআর ভুল করবেন না❌")
         
     except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
 @dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
@@ -453,7 +453,7 @@ async def referral_command(message: types.Message):
     # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
     text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
             f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
-            f"📮 **Attention**\n"
+            f"    📮    **Attention**\n"
             f"🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।\n"
             f"🚨 👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে ব্যালেন্স করবে।\n"
             f"🔥 আপনি কার মাধ্যমে এই বটে এসেছেন?\n"
@@ -475,7 +475,7 @@ async def process_referral_info(message: types.Message, state: FSMContext):
                  f"👤 **প্রেরক:** {sender_name}\n"
                  f"🆔 **আইডি:** `{sender_id}`\n"
                  f"━━━━━━━━━━━━━━━\n"
-                 f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
+                 f"📝 **যার মাধ্যমে এসেছে:** {referrer_detail}")
     
     try:
         await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
@@ -512,10 +512,10 @@ async def support_message(message: types.Message):
     text = (
         "👋 **হ্যালো! আমাদের সাপোর্ট সেন্টারে আপনাকে স্বাগতম।**\n\n"
         "যেকোনো সমস্যা বা তথ্যের জন্য নিচে ক্লিক করুন:\n\n"
-        "👤 **অ্যাডমিন:** [Dinanhaji](https://t.me/Dinanhaji)\n"
+        "🎥 **Bot Setup:** [VIDEO](bk)\n"
         "📢 **আপডেট গ্রুপ:** [Join Channel](https://t.me/instafbhub)\n"
         "🛠 **হেল্প সাপোর্ট:** [Contact Support](https://t.me/instafbhub_support)\n\n"
-        "আমরা আপনাকে দ্রুত সাহায্য করার চেষ্টা করব। ধন্যবাদ!"
+        "✅আমরা আপনাকে দ্রুত সাহায্য করার চেষ্টা করব। ধন্যবাদ!"
     )
     
     # parse_mode="Markdown" অবশ্যই থাকতে হবে নাহলে লিঙ্ক কাজ করবে না
@@ -542,7 +542,7 @@ async def work_v2_options(message: types.Message, state: FSMContext):
     msg_text = (
         f"✅ আপনি বেছে নিয়েছেন: **{message.text}**\n"
         f"━━━━━━━━━━━━━━━\n"
-        f"এখন আপনি কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।"
+        f"এখন আপনি কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।\n\n🔙 মেইন মেনুতে ফিরে যেতে/start\n"
     )
     
     await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
