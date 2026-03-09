@@ -100,12 +100,6 @@ async def start(message: types.Message, state: FSMContext):
     
     # ৪. মেইন মেনু দেখানো
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
-def work_v2_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # এখানে আপনি আপনার নতুন কাজের ক্যাটাগরি দিতে পারেন
-    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
-    keyboard.add("🔄 রিফ্রেশ") 
-    return keyboard
     
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
