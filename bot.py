@@ -69,7 +69,7 @@ def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
     keyboard.add("👥 Referral","🧑‍💻Support")
-    keyboard.add("🔥Work Start v2")
+    keyboard.add("🔥Work Start v2", "🔴Rules & Price")
     return keyboard
 def work_v2_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
@@ -77,7 +77,14 @@ def work_v2_menu():
     keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
     keyboard.add("🔄 রিফ্রেশ") 
     return keyboard
-
+def rules_price_menu():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    # আপনার দেওয়া নাম অনুযায়ী বাটনগুলো সাজানো হলো
+    keyboard.add("IG 2fa", "IG Cookies")
+    keyboard.add("Ig mother account", "Fb 00 fnd 2fa")
+    keyboard.add("🔄 রিফ্রেশ") # মেইন মেনুতে ফেরার জন্য
+    return keyboard
+    
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
@@ -88,10 +95,9 @@ async def start(message: types.Message, state: FSMContext):
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
-    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান
-    url_button = types.InlineKeyboardButton(text="🚨Ruls And Method", url="https://t.me/instafbhub") 
+    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান 
     help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
-    inline_kb.add(url_button, help_button)
+    inline_kb.add(help_button)
     # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
         # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
     welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
@@ -563,7 +569,72 @@ async def admin_direct_msg(message: types.Message):
         
     except Exception as e:
         await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
+@dp.message_handler(lambda message: message.text == "🔴Rules & Price")
+async def rules_price_handler(message: types.Message):
+    text = (
+        "🔴 **Rules & Price**\n\n"
+        "🫱যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👎 নিচের বাটন থেকে সেটি সিলেক্ট করুন:"
+    )
+    await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
+@dp.message_handler(lambda message: message.text in ["IG 2fa", "IG Cookies", "Ig mother account", "Fb 00 fnd 2fa"])
+async def show_rules_detail(message: types.Message):
+    category = message.text
+    msg = ""
+    
+    if category == "IG 2fa":
+        msg = "(
+"📸 Instagram 00 Follower (2FA)"
 
+"💸 প্রাইস: প্রতি পিস ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)"
+
+"⚠️ নিয়ম: * 🚫 Resell ID Not Allowed."
+
+"❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।"
+
+"📄 শীট ফরম্যাট: User-pass-2fa"
+
+"⏰ আইডি সাবমিট লাস্ট টাইম: রাত ০৮:১৫ মিনিট।"          
+    )
+    elif category == "IG Cookies":
+        msg = (
+"📸 Instagram Cookies 00 Follower"
+
+"💸 প্রাইস: প্রতি পিস ৩.৯০ টাকা"
+    
+ "(১০০+ হলে ৪.১০ টাকা)"
+
+"⚠️ নিয়ম: * ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।"
+
+"⏳ ২০ মিনিট পার হয়ে গেলে সাবমিট নেওয়া হবে না।"
+
+"📄 শীট ফরম্যাট: User-pass"
+
+"⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।"
+        )
+    elif category == "Ig mother account":
+        msg = (
+" 📸 Instagram Mother Account (2FA) [V. Important]"
+
+"💸 প্রাইস: প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)"
+
+"⚠️ নিয়ম: * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।"
+
+"⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)"
+        )
+    elif category == "Fb 00 fnd 2fa":
+        msg = (
+"🔵 Facebook (FB 00 Fnd 2fa)"
+
+"💸 প্রাইস: প্রতি পিস ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)"
+
+"⚠️ নিয়ম: * ❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।"
+
+"⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।"
+        )
+    
+    if msg:
+        await message.answer(msg, parse_mode="Markdown")
+            
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
