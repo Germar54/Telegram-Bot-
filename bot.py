@@ -512,7 +512,15 @@ async def support_message(message: types.Message):
     
     # parse_mode="Markdown" অবশ্যই থাকতে হবে নাহলে লিঙ্ক কাজ করবে না
     await message.answer(text, parse_mode="Markdown", disable_web_page_preview=True)
-    
+@dp.message_handler(lambda message: message.text == "🔥 Work Start v2")
+async def work_v2_handler(message: types.Message):
+    # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
+    text = (
+        "👍 যেকোনো সমস্যায়: @Dinanhaji !\n"
+        "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**"
+    )
+    await message.answer(text, reply_markup=work_v2_menu(), parse_mode="Markdown")
+            
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
