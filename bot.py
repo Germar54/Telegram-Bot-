@@ -195,8 +195,7 @@ async def get_2fa(message: types.Message, state: FSMContext):
     # শুধুমাত্র সিঙ্গেল আইডি জমা দিলে ব্যালেন্স আপডেট হবে
     if amount_to_add > 0:
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount_to_add, message.from_user.id))
-        db.commit()
-        
+    db.commit()   
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
     await message.answer("✅ আপনার তথ্য জমা হয়েছে!", reply_markup=main_menu())
     
