@@ -419,20 +419,7 @@ async def send_block_reason(message: types.Message, state: FSMContext):
     except:
         await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
 # ১. রেফারেল বাটনে ক্লিক করলে যা হবে
-@dp.message_handler(lambda message: message.text == "👥 Referral")
-async def referral_command(message: types.Message):
-    user_id = message.from_user.id
-    bot_info = await bot.get_me()
-    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
-    
 
-    # ইউজারকে তার লিংক দেখানো
-    await message.answer(
-        f"👥 **আপনার মোট রেফারেল:** 0 জন\n"
-        f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
-        f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
-        reply_markup=main_menu()
-                           )  
     # ==========================================
 # অ্যাডমিন সরাসরি ইউজারকে মেসেজ পাঠাবে
 # ফরম্যাট: /msg ইউজার_আইডি আপনার_মেসেজ
