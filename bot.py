@@ -68,7 +68,7 @@ async def is_blocked(user_id):
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
-    keyboard.add("👥 Referral")
+    keyboard.add("👥 Referral","🧑‍💻 Support")
     return keyboard
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -490,6 +490,21 @@ async def admin_edit_referral(message: types.Message):
         except: pass
     except:
         await message.answer("❌ ভুল আইডি বা সংখ্যা।")
+    # 'Support' বাটনে ক্লিক করলে যা শো করবে (হাইপারলিঙ্ক সহ)
+@dp.message_handler(lambda message: message.text == "🧑‍💻Support")
+async def support_message(message: types.Message):
+    # এখানে [শব্দ](লিঙ্ক) এই ফরম্যাটে হাইপারলিঙ্ক সেট করা হয়েছে
+    text = (
+        "👋 **হ্যালো! আমাদের সাপোর্ট সেন্টারে আপনাকে স্বাগতম।**\n\n"
+        "যেকোনো সমস্যা বা তথ্যের জন্য নিচে ক্লিক করুন:\n\n"
+        "👤 **অ্যাডমিন:** [Dinanhaji](https://t.me/Dinanhaji)\n"
+        "📢 **আপডেট গ্রুপ:** [Join Channel](https://t.me/instafbhub)\n"
+        "🛠 **হেল্প সাপোর্ট:** [Contact Support](https://t.me/instafbhub_support)\n\n"
+        "আমরা আপনাকে দ্রুত সাহায্য করার চেষ্টা করব। ধন্যবাদ!"
+    )
+    
+    # parse_mode="Markdown" অবশ্যই থাকতে হবে নাহলে লিঙ্ক কাজ করবে না
+    await message.answer(text, parse_mode="Markdown", disable_web_page_preview=True)
     
 if __name__ == '__main__':
     keep_alive()
