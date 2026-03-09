@@ -179,15 +179,24 @@ async def get_2fa(message: types.Message, state: FSMContext):
     category = data.get('category')
     amount_to_add = 0
 
-    if category == "IG Mother Account":
+    category = data.get('category')
+    amount_to_add = 0
+
+    # পুরাতন এবং নতুন সব কাজের রেট এখানে দেওয়া হলো
+    if category == "FB 00 Fnd 2fa":
+        amount_to_add = 5.80
+    elif category == "IG Cookies":
+        amount_to_add = 3.90
+    elif category == "IG Mother Account":
         amount_to_add = 7
-    elif category == "IG 2FA":
+    elif category == "IG 2fa":
         amount_to_add = 2.30
 
+    # শুধুমাত্র সিঙ্গেল আইডি জমা দিলে ব্যালেন্স আপডেট হবে
     if amount_to_add > 0:
         cursor.execute("UPDATE users SET balance = balance + ? WHERE user_id = ?", (amount_to_add, message.from_user.id))
-
-    db.commit()
+        db.commit()
+        
     await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
     await message.answer("✅ আপনার তথ্য জমা হয়েছে!", reply_markup=main_menu())
     
