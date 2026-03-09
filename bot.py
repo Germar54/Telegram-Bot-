@@ -576,7 +576,6 @@ async def rules_price_handler(message: types.Message):
         "🫱যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👎 নিচের বাটন থেকে সেটি সিলেক্ট করুন:"
     )
     await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
-# --- শুধুমাত্র রুল এবং প্রাইস দেখানোর জন্য হ্যান্ডলার (Rules যুক্ত নামসহ) ---
 @dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 async def show_only_rules(message: types.Message):
     category = message.text
@@ -584,40 +583,47 @@ async def show_only_rules(message: types.Message):
     
     if "IG 2fa Rules" in category:
         msg = (
-            "📸 **Instagram 00 Follower (2FA)**\n\n"
-            "💸 প্রাইস: ২.৩০ ৳ (১০০+ হলে ২.৫০ ৳)\n"
-            "⚠️ নিয়ম: 🚫 Resell ID Not Allowed.\n"
-            "⏰ লাস্ট টাইম: রাত ০৮:১৫ মিনিট।\n"
-            "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**"
+            "📌 **পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)**\n\n"
+            "💸 প্রাইস: প্রতি পিস ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)\n"
+            "⚠️ নিয়ম: * 🚫 Resell ID Not Allowed.\n"
+            "❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।\n"
+            "📄 শীট ফরম্যাট: User-pass-2fa\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ০৮:১৫ মিনিট।\n"
+            "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**\n\n"
+            "ID Submit and Withdraw : [Click Here](https://t.me/your_link)"
         )
     elif "IG Cookies Rules" in category:
         msg = (
-            "📸 **Instagram Cookies 00 Follower**\n\n"
-            "💸 প্রাইস: ৩.৯০ ৳ (১০০+ হলে ৪.১০ ৳)\n"
-            "⚠️ নিয়ম: ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n"
-            "⏰ লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
+            "📌 **পয়েন্ট ২: 📸 Instagram Cookies 00 Follower**\n\n"
+            "💸 প্রাইস: প্রতি পিস ৩.৯০ টাকা (১০০+ হলে ৪.১০ টাকা)\n"
+            "⚠️ নিয়ম: * ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n"
+            "⏳ ২০ মিনিট পার হয়ে গেলে সাবমিট নেওয়া হবে না।\n"
+            "📄 শীট ফরম্যাট: User-pass\n"
+            "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
         )
     elif "Ig mother account Rules" in category:
         msg = (
-            "📸 **Instagram Mother Account (2FA)**\n\n"
-            "💸 প্রাইস: ৮ ৳ (৫০+ হলে ৯ ৳)\n"
-            "⚠️ নিয়ম: ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে।\n"
-            "⏰ লাস্ট টাইম: যেকোনো সময়।\n"
+            "📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA) [V. Important]**\n\n"
+            "💸 প্রাইস: প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)\n"
+            "⚠️ নিয়ম: * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।\n"
+            "📄 শীট ফরম্যাট: User-pass-2fa\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)。\n"
             "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
         )
     elif "Fb 00 fnd 2fa Rules" in category:
         msg = (
-            "🔵 **Facebook (FB 00 Fnd 2fa)**\n\n"
-            "💸 প্রাইস: ৫.৮০ ৳ (৫০+ হলে ৬ ৳)\n"
-            "⚠️ নিয়ম: ❌ পাসওয়ার্ডের শেষে তারিখ দেওয়া যাবে না।\n"
-            "⏰ লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
+            "📌 **পয়েন্ট ৪: 🔵 Facebook (FB00Fnd 2fa)**\n\n"
+            "💸 প্রাইস: প্রতি পিস ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n"
+            "⚠️ নিয়ম: * ❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।\n"
+            "📄 শীট ফরম্যাট: User-pass-2fa\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৫ ঘণ্টা।**"
         )
     
     if msg:
         await message.answer(msg, parse_mode="Markdown")
-        
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
