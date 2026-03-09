@@ -520,7 +520,25 @@ async def work_v2_handler(message: types.Message):
         "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**"
     )
     await message.answer(text, reply_markup=work_v2_menu(), parse_mode="Markdown")
-            
+      # FB 00 Fnd 2fa এবং IG Cookies বাটনের জন্য কাজ
+@dp.message_handler(lambda message: message.text in ["FB 00 Fnd 2fa", "IG Cookies"])
+async def work_v2_options(message: types.Message, state: FSMContext):
+    # ইউজারের সিলেক্ট করা ক্যাটাগরি সেভ করা
+    await state.update_data(category=message.text)
+    
+    # ফাইল এবং সিঙ্গেল আইডি অপশন (ইনলাইন বাটন)
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="type_file"))
+    inline_kb.add(types.InlineKeyboardButton("🆔 Single ID", callback_data="type_single"))
+    
+    msg_text = (
+        f"✅ আপনি বেছে নিয়েছেন: **{message.text}**\n"
+        f"━━━━━━━━━━━━━━━\n"
+        f"এখন আপনি কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।"
+    )
+    
+    await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
