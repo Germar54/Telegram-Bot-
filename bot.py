@@ -79,10 +79,10 @@ def work_v2_menu():
     return keyboard
 def rules_price_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # আপনার দেওয়া নাম অনুযায়ী বাটনগুলো সাজানো হলো
-    keyboard.add("IG 2fa", "IG Cookies")
-    keyboard.add("Ig mother account", "Fb 00 fnd 2fa")
-    keyboard.add("🔄 রিফ্রেশ") # মেইন মেনুতে ফেরার জন্য
+    # প্রতিটি নামের সাথে Rules যুক্ত করা হলো
+    keyboard.add("IG 2fa Rules", "IG Cookies Rules")
+    keyboard.add("Ig mother account Rules", "Fb 00 fnd 2fa Rules")
+    keyboard.add("🔄 রিফ্রেশ") 
     return keyboard
     
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
@@ -576,51 +576,48 @@ async def rules_price_handler(message: types.Message):
         "🫱যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👎 নিচের বাটন থেকে সেটি সিলেক্ট করুন:"
     )
     await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
-@dp.message_handler(lambda message: message.text in ["IG 2fa", "IG Cookies", "Ig mother account", "Fb 00 fnd 2fa"])
-async def show_rules_detail(message: types.Message):
+# --- শুধুমাত্র রুল এবং প্রাইস দেখানোর জন্য হ্যান্ডলার (Rules যুক্ত নামসহ) ---
+@dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
+async def show_only_rules(message: types.Message):
     category = message.text
     msg = ""
     
-    if category == "IG 2fa":
+    if "IG 2fa Rules" in category:
         msg = (
             "📸 **Instagram 00 Follower (2FA)**\n\n"
-            "💸 প্রাইস: প্রতি পিস ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)\n"
-            "⚠️ নিয়ম: * 🚫 Resell ID Not Allowed.\n"
-            "❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ০৮:১৫ মিনিট।\n"
+            "💸 প্রাইস: ২.৩০ ৳ (১০০+ হলে ২.৫০ ৳)\n"
+            "⚠️ নিয়ম: 🚫 Resell ID Not Allowed.\n"
+            "⏰ লাস্ট টাইম: রাত ০৮:১৫ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**"
         )
-    elif category == "IG Cookies":
+    elif "IG Cookies Rules" in category:
         msg = (
             "📸 **Instagram Cookies 00 Follower**\n\n"
-            "💸 প্রাইস: প্রতি পিস ৩.৯০ টাকা (১০০+ হলে ৪.১০ টাকা)\n"
-            "⚠️ নিয়ম: * ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n"
-            "⏳ ২০ মিনিট পার হয়ে গেলে সাবমিট নেওয়া হবে না।\n"
-            "📄 শীট ফরম্যাট: User-pass\n"
-            "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
+            "💸 প্রাইস: ৩.৯০ ৳ (১০০+ হলে ৪.১০ ৳)\n"
+            "⚠️ নিয়ম: ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n"
+            "⏰ লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
         )
-    elif category == "Ig mother account":
+    elif "Ig mother account Rules" in category:
         msg = (
-            "📸 **Instagram Mother Account (2FA) [V. Important]**\n\n"
-            "💸 প্রাইস: প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)\n"
-            "⚠️ নিয়ম: * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)\n"
+            "📸 **Instagram Mother Account (2FA)**\n\n"
+            "💸 প্রাইস: ৮ ৳ (৫০+ হলে ৯ ৳)\n"
+            "⚠️ নিয়ম: ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে।\n"
+            "⏰ লাস্ট টাইম: যেকোনো সময়।\n"
             "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
         )
-    elif category == "Fb 00 fnd 2fa":
+    elif "Fb 00 fnd 2fa Rules" in category:
         msg = (
             "🔵 **Facebook (FB 00 Fnd 2fa)**\n\n"
-            "💸 প্রাইস: প্রতি পিস ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n"
-            "⚠️ নিয়ম: * ❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
+            "💸 প্রাইস: ৫.৮০ ৳ (৫০+ হলে ৬ ৳)\n"
+            "⚠️ নিয়ম: ❌ পাসওয়ার্ডের শেষে তারিখ দেওয়া যাবে না।\n"
+            "⏰ লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৫ ঘণ্টা।**"
         )
     
     if msg:
         await message.answer(msg, parse_mode="Markdown")
-            
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
