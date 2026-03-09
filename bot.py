@@ -109,8 +109,7 @@ async def ask_work_type(message: types.Message, state: FSMContext):
     
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb.add(types.InlineKeyboardButton("🗃️ File", callback_data="type_file"))
-    inline_kb.adqngle ID", callback_data="type_single"))
-    
+    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
     await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
 async def work_start(message: types.Message):
