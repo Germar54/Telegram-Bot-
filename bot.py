@@ -451,7 +451,11 @@ async def referral_command(message: types.Message):
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
     text = (f"👥 **আপনার রেফারেল লিঙ্ক:**\n`{refer_link}`\n\n"
-            f"আপনি কার মাধ্যমে এই বটে এসেছেন? তার **Username** অথবা **User ID** লিখে নিচে পাঠান।")
+            f"""       📮Attention 
+            🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।
+            🚨👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে তার ব্যালেন্স করবে। 
+            🔥আপনি কার মাধ্যমে এই বটে এসেছেন?
+            🖲️তার **Username** অথবা **User ID** লিখে নিচে পাঠান।""")
     
     await message.answer(text, parse_mode="Markdown")
     await BotState.waiting_for_referrer_info.set()
@@ -466,13 +470,13 @@ async def process_referral_info(message: types.Message, state: FSMContext):
     admin_report = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
                     f"👤 **প্রেরক:** {user_name}\n"
                     f"🆔 **আইডি:** `{user_id}`\n"
-                    f"🔗 **ইউজারনেম:** {user_username}\n"
+                    f"🔗 **ইউজারনেম:** `{user_username}`\n"
                     f"━━━━━━━━━━━━━━━\n"
                     f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
 
     await bot.send_message(ADMIN_ID, admin_report, parse_mode="Markdown")
     
-    await message.answer("✅ আপনার তথ্য অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
+    await message.answer("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ঐ আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n 🟢আপনার রেফারেল রিসিভ করা হয়েছে।\n👌 ধন্যবাদ", reply_markup=main_menu())
     await state.finish()
                  
 if __name__ == '__main__':
