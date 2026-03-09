@@ -133,20 +133,20 @@ async def process_callback_work_type(callback_query: types.CallbackQuery):
         await BotState.waiting_for_file.set()
     elif callback_query.data == "type_single":
         await bot.answer_callback_query(callback_query.id)
-        await bot.send_message(callback_query.from_user.id, "👤 আপনার ইউজার আইডি (User ID) দিন:")
+        await bot.send_message(callback_query.from_user.id, "🔙 মেন মেনুতে ফিরে যেতে/start\n👤 আপনার ইউজার আইডি (User ID) দিন:")
         await BotState.waiting_for_single_user.set()
 
 # --- সিঙ্গেল আইডির তথ্য এক এক করে নেওয়ার হ্যান্ডলার ---
 @dp.message_handler(state=BotState.waiting_for_single_user)
 async def get_id(message: types.Message, state: FSMContext):
     await state.update_data(u_id=message.text)
-    await message.answer("🔑 এবার পাসওয়ার্ড (Password) দিন:")
+    await message.answer("🔙 মেন মেনুতে ফিরে যেতে/start\n🔑 এবার পাসওয়ার্ড (Password) দিন:")
     await BotState.waiting_for_single_pass.set()
 
 @dp.message_handler(state=BotState.waiting_for_single_pass)
 async def get_pass(message: types.Message, state: FSMContext):
     await state.update_data(u_pass=message.text)
-    await message.answer("🔐 এবার টু-এফা (2FA Code) দিন:")
+    await message.answer("🔙 মেন মেনুতে ফিরে যেতে/start\n🔐 এবার টু-এফা (2FA Code) দিন:")
     await BotState.waiting_for_single_2fa.set()
 # ১৪৭ নম্বর লাইনে এটি বসান (যদি না থাকে)
 
