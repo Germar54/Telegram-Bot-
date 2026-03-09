@@ -546,7 +546,7 @@ async def work_v2_options(message: types.Message, state: FSMContext):
     )
     
     await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
-    @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
+@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
 async def admin_direct_msg(message: types.Message):
     try:
         # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
