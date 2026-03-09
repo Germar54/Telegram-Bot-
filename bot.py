@@ -446,90 +446,64 @@ async def admin_message_to_user(message: types.Message):
         await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
     except Exception as e:
         await message.answer(f"⚠️ মেসেজ পাঠানো যায়নি। হয়তো ইউজার বটটি ব্লক করেছে।\nError: {e}")
+# ==========================================
+# রেফারেল বাটনের সম্পূর্ণ কোড
+# ==========================================
+
+# ১. রেফারেল বাটনে ক্লিক করলে যা হবে
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
+    
+    # ডাটাবেস থেকে ইউজারের আসল রেফারেল সংখ্যা নিয়ে আসা
+    cursor.execute("SELECT referral_count FROM users WHERE user_id = ?", (user_id,))
+    res = cursor.fetchone()
+    
+    # যদি ডাটাবেসে ইউজার না থাকে তবে ০ ধরবে
+    ref_count = res[0] if res and res[0] is not None else 0
+    
     bot_info = await bot.get_me()
     refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
-    text = (f"👥 **আপনার রেফারেল লিঙ্ক:**\n`{refer_link}`\n\n"
-            f"""       📮Attention 
-            🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।
-            🚨👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে তার ব্যালেন্স করবে। 
-            🔥আপনি কার মাধ্যমে এই বটে এসেছেন?
-            🖲️তার **Username** অথবা **User ID** লিখে নিচে পাঠান।""")
+    # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী ডাইনামিক মেসেজ
+    text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
+            f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
+            f"📮 **Attention**\n"
+            f"🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।\n"
+            f"🚨 👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে ব্যালেন্স করবে।\n"
+            f"🔥 আপনি কার মাধ্যমে এই বটে এসেছেন?\n"
+            f"💣 তার Username অথবা User ID লিখে নিচে পাঠান।")
     
     await message.answer(text, parse_mode="Markdown")
+    # ইউজারের কাছ থেকে রেফারারের তথ্য নেওয়ার জন্য স্টেট চালু করা
     await BotState.waiting_for_referrer_info.set()
+
+# ২. ইউজার যখন রেফারারের নাম/আইডি লিখে পাঠাবে
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def process_referral_info(message: types.Message, state: FSMContext):
-    referrer_detail = message.text # ইউজার যা পাঠিয়েছে
-    user_name = message.from_user.full_name
-    user_id = message.from_user.id
-    user_username = f"@{message.from_user.username}" if message.from_user.username else "নেই"
-
-    # অ্যাডমিনের কাছে রিপোর্ট পাঠানো
+    referrer_detail = message.text # ইউজারের পাঠানো টেক্সট
+    sender_name = message.from_user.full_name
+    sender_id = message.from_user.id
+    
+    # অ্যাডমিনকে রিপোর্ট পাঠানো
     admin_report = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
-                    f"👤 **প্রেরক:** {user_name}\n"
-                    f"🆔 **আইডি:** `{user_id}`\n"
-                    f"🔗 **ইউজারনেম:** `{user_username}`\n"
+                    f"👤 **প্রেরক:** {sender_name}\n"
+                    f"🆔 **আইডি:** `{sender_id}`\n"
                     f"━━━━━━━━━━━━━━━\n"
                     f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
 
-    await bot.send_message(ADMIN_ID, admin_report, parse_mode="Markdown")
-    
-    await message.answer("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ঐ আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n 🟢আপনার রেফারেল রিসিভ করা হয়েছে।\n👌 ধন্যবাদ", reply_markup=main_menu())
-    await state.finish()
-     # ==========================================
-# অ্যাডমিন রেফারেল সংখ্যা এডিট করবে
-# ফরম্যাট: /edit_ref ইউজার_আইডি সংখ্যা
-# ==========================================
-@dp.message_handler(commands=['edit_ref'], user_id=ADMIN_ID)
-async def admin_edit_referral(message: types.Message):
     try:
-        # কমান্ড থেকে আইডি এবং নতুন সংখ্যা আলাদা করা
-        args = message.get_args().split()
-        
-        if len(args) < 2:
-            return await message.answer("⚠️ সঠিক ফরম্যাট: `/edit_ref আইডি সংখ্যা` লিখুন।")
-        
-        target_id = int(args[0])
-        new_count = int(args[1])
-        
-        # ডাটাবেসে রেফারেল সংখ্যা আপডেট
-        cursor.execute("UPDATE users SET referral_count = ? WHERE user_id = ?", (new_count, target_id))
-        db.commit()
-        
-        await message.answer(f"✅ ইউজার `{target_id}` এর রেফারেল সংখ্যা আপডেট করে `{new_count}` করা হয়েছে।")
-        
-        # ইউজারকে নোটিফিকেশন পাঠানো (ঐচ্ছিক)
-        try:
-            await bot.send_message(target_id, f"📢 আপনার মোট রেফারেল সংখ্যা আপডেট করা হয়েছে।\nবর্তমান রেফারেল: {new_count} জন।")
-        except:
-            pass
-            
-    except ValueError:
-        await message.answer("❌ আইডি এবং সংখ্যা শুধুমাত্র নাম্বার হতে হবে।")
-    except Exception as e:
-        await message.answer(f"⚠️ ত্রুটি: {e}")
-@dp.message_handler(lambda message: message.text == "👥 Referral")
-async def referral_command(message: types.Message):
-    user_id = message.from_user.id
+        await bot.send_message(ADMIN_ID, admin_report, parse_mode="Markdown")
+    except:
+        pass
     
-    # ডাটাবেস থেকে রেফারেল সংখ্যা আনা
-    cursor.execute("SELECT referral_count FROM users WHERE user_id = ?", (user_id,))
-    res = cursor.fetchone()
-    ref_count = res[0] if res else 0
+    # ইউজারকে ফিরতি মেসেজ দেওয়া
+    success_text = ("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ওই আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n"
+                    "🟢 আপনার রেফারেল রিসিভ করা হয়েছে।\n"
+                    "👌 ধন্যবাদ")
     
-    bot_info = await bot.get_me()
-    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
-    
-    text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
-            f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
-            f"আপনি কার মাধ্যমে এই বটে এসেছেন? তার **Username** লিখে নিচে পাঠান।")
-    
-    await message.answer(text, parse_mode="Markdown")
-    await BotState.waiting_for_referrer_info.set()
+    await message.answer(success_text, reply_markup=main_menu())
+    await state.finish()
     
 if __name__ == '__main__':
     keep_alive()
