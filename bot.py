@@ -429,7 +429,32 @@ async def referral_command(message: types.Message):
         f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
         f"✅ আপনার রেফারেল রিকোয়েস্ট অ্যাডমিনের কাছে পাঠানো হয়েছে!",
         reply_markup=main_menu()
-                           )        
+                           )  
+    # ==========================================
+# অ্যাডমিন সরাসরি ইউজারকে মেসেজ পাঠাবে
+# ফরম্যাট: /msg ইউজার_আইডি আপনার_মেসেজ
+# ==========================================
+@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
+async def admin_message_to_user(message: types.Message):
+    try:
+        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
+        args = message.get_args().split(maxsplit=1)
+        
+        if len(args) < 2:
+            return await message.answer("⚠️ সঠিক ফরম্যাট: `/msg আইডি মেসেজ` লিখুন।")
+        
+        target_id = int(args[0])
+        text_to_send = args[1]
+        
+        # ইউজারের কাছে মেসেজ পাঠানো
+        await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}", parse_mode="Markdown")
+        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
+        
+    except ValueError:
+        await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
+    except Exception as e:
+        await message.answer(f"⚠️ মেসেজ পাঠানো যায়নি। হয়তো ইউজার বটটি ব্লক করেছে।\nError: {e}")
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
