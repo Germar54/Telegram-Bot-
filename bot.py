@@ -56,6 +56,9 @@ class BotState(StatesGroup):
     waiting_for_block_reason = State() 
     waiting_for_target_id = State()
     waiting_for_admin_msg = State()
+    # আপনার আগের স্টেটগুলো থাকবে...
+    waiting_for_referrer_info = State() # এটি নতুন যোগ করুন
+    
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -454,7 +457,37 @@ async def admin_message_to_user(message: types.Message):
         await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
     except Exception as e:
         await message.answer(f"⚠️ মেসেজ পাঠানো যায়নি। হয়তো ইউজার বটটি ব্লক করেছে।\nError: {e}")
+@dp.message_handler(lambda message: message.text == "👥 Referral")
+async def referral_command(message: types.Message):
+    user_id = message.from_user.id
+    bot_info = await bot.get_me()
+    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
     
+    text = (f"👥 **আপনার রেফারেল লিঙ্ক:**\n`{refer_link}`\n\n"
+            f"আপনি কার মাধ্যমে এই বটে এসেছেন? তার **Username** অথবা **User ID** লিখে নিচে পাঠান।")
+    
+    await message.answer(text, parse_mode="Markdown")
+    await BotState.waiting_for_referrer_info.set()
+@dp.message_handler(state=BotState.waiting_for_referrer_info)
+async def process_referral_info(message: types.Message, state: FSMContext):
+    referrer_detail = message.text # ইউজার যা পাঠিয়েছে
+    user_name = message.from_user.full_name
+    user_id = message.from_user.id
+    user_username = f"@{message.from_user.username}" if message.from_user.username else "নেই"
+
+    # অ্যাডমিনের কাছে রিপোর্ট পাঠানো
+    admin_report = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
+                    f"👤 **প্রেরক:** {user_name}\n"
+                    f"🆔 **আইডি:** `{user_id}`\n"
+                    f"🔗 **ইউজারনেম:** {user_username}\n"
+                    f"━━━━━━━━━━━━━━━\n"
+                    f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
+
+    await bot.send_message(ADMIN_ID, admin_report, parse_mode="Markdown")
+    
+    await message.answer("✅ আপনার তথ্য অ্যাডমিনের কাছে পাঠানো হয়েছে। ধন্যবাদ!", reply_markup=main_menu())
+    await state.finish()
+                 
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
