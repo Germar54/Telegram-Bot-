@@ -576,7 +576,6 @@ async def rules_price_handler(message: types.Message):
         "🫱যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👎 নিচের বাটন থেকে সেটি সিলেক্ট করুন:"
     )
     await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
-@dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 # --- রুলস এবং প্রাইস দেখানোর নির্ভুল কোড ---
 @dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 async def show_only_rules(message: types.Message):
@@ -630,7 +629,6 @@ async def show_only_rules(message: types.Message):
     
     if msg:
         await message.answer(msg, parse_mode="Markdown", disable_web_page_preview=True)
-        
     
 if __name__ == '__main__':
     keep_alive()
