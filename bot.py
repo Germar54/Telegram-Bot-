@@ -420,77 +420,16 @@ async def send_block_reason(message: types.Message, state: FSMContext):
         await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
     except:
         await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
-# ১. রেফারেল বাটনে ক্লিক করলে যা হবে
-
-    # ==========================================
-# অ্যাডমিন সরাসরি ইউজারকে মেসেজ পাঠাবে
-# ফরম্যাট: /msg ইউজার_আইডি আপনার_মেসেজ
-# ==========================================
-@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
-async def admin_message_to_user(message: types.Message):
-    try:
-        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
-        args = message.get_args().split(maxsplit=1)
-        
-        if len(args) < 2:
-            return await message.answer("⚠️ সঠিক ফরম্যাট: `/msg আইডি মেসেজ` লিখুন।")
-        
-        target_id = int(args[0])
-        text_to_send = args[1]
-        
-        # ইউজারের কাছে মেসেজ পাঠানো
-        await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}", parse_mode="Markdown")
-        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
-        
-    except ValueError:
-        await message.answer("❌ আইডি শুধুমাত্র সংখ্যা হতে হবে।")
-    except Exception as e:
-        await message.answer(f"⚠️ মেসেজ পাঠানো যায়নি। হয়তো ইউজার বটটি ব্লক করেছে।\nError: {e}")
-# ==========================================
-# রেফারেল বাটনের সম্পূর্ণ কোড
-# ==========================================
-# ==========================================
-# অ্যাডমিন রেফারেল সংখ্যা এডিট করবে
-# ফরম্যাট: /edit_ref ইউজার_আইডি নতুন_সংখ্যা
-# ==========================================
-@dp.message_handler(commands=['edit_ref'], user_id=ADMIN_ID)
-async def admin_edit_referral(message: types.Message):
-    try:
-        # কমান্ড থেকে আইডি এবং নতুন সংখ্যা আলাদা করা
-        args = message.get_args().split()
-        
-        if len(args) < 2:
-            return await message.answer("⚠️ সঠিক ফরম্যাট: `/edit_ref আইডি সংখ্যা` লিখুন।")
-        
-        target_id = int(args[0])
-        new_count = int(args[1])
-        
-        # ডাটাবেসে রেফারেল সংখ্যা আপডেট করা
-        cursor.execute("UPDATE users SET referral_count = ? WHERE user_id = ?", (new_count, target_id))
-        db.commit()
-        
-        await message.answer(f"✅ ইউজার `{target_id}` এর রেফারেল সংখ্যা আপডেট করে `{new_count}` করা হয়েছে।")
-        
-        # ইউজারকে নোটিফিকেশন পাঠানো (ঐচ্ছিক)
-        try:
-            await bot.send_message(target_id, f"📢 আপনার মোট রেফারেল সংখ্যা আপডেট করা হয়েছে।\nবর্তমান রেফারেল: {new_count} জন।")
-        except:
-            pass
-            
-    except ValueError:
-        await message.answer("❌ আইডি এবং সংখ্যা শুধুমাত্র নাম্বার হতে হবে।")
-    except Exception as e:
-        await message.answer(f"⚠️ ত্রুটি: {e}")
-    
-# ১. রেফারেল বাটনে ক্লিক করলে যা হবে
-
+# ১. রেফারেল বাটনে ক্লিক করলে ডাটাবেস থেকে আসল সংখ্যা দেখাবে
 @dp.message_handler(lambda message: message.text == "👥 Referral")
 async def referral_command(message: types.Message):
     user_id = message.from_user.id
     
-    # ডাটাবেস থেকে ইউজারের রেফারেল সংখ্যা নিয়ে আসা
+    # ডাটাবেস থেকে ইউজারের রেফারেল সংখ্যা খুঁজে আনা
     cursor.execute("SELECT referral_count FROM users WHERE user_id = ?", (user_id,))
     res = cursor.fetchone()
+    
+    # যদি ডাটাবেসে তথ্য না থাকে তবে ০ দেখাবে
     ref_count = res[0] if res and res[0] is not None else 0
     
     bot_info = await bot.get_me()
@@ -498,7 +437,7 @@ async def referral_command(message: types.Message):
     
     # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
     text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
-            f"🔗 **আপনার লিঙ্ক:** {refer_link}\n\n"
+            f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
             f"📮 **Attention**\n"
             f"🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।\n"
             f"🚨 👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে ব্যালেন্স করবে।\n"
@@ -506,34 +445,51 @@ async def referral_command(message: types.Message):
             f"💣 তার Username অথবা User ID লিখে নিচে পাঠান।")
     
     await message.answer(text, parse_mode="Markdown")
+    # ইউজারের ইনপুট নেওয়ার জন্য স্টেট সেট করা
     await BotState.waiting_for_referrer_info.set()
-    
-# ২. ইউজার যখন রেফারারের নাম/আইডি লিখে পাঠাবে
+
+# ২. ইউজার যখন রেফারারের তথ্য লিখে পাঠাবে (ইনপুট হ্যান্ডলার)
 @dp.message_handler(state=BotState.waiting_for_referrer_info)
 async def process_referral_info(message: types.Message, state: FSMContext):
-    referrer_detail = message.text # ইউজারের পাঠানো টেক্সট
+    referrer_detail = message.text # ইউজার যা লিখে পাঠাবে বট তা গ্রহণ করবে
     sender_name = message.from_user.full_name
     sender_id = message.from_user.id
     
-    # অ্যাডমিনকে রিপোর্ট পাঠানো
-    admin_report = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
-                    f"👤 **প্রেরক:** {sender_name}\n"
-                    f"🆔 **আইডি:** `{sender_id}`\n"
-                    f"━━━━━━━━━━━━━━━\n"
-                    f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
-
+    # অ্যাডমিনকে নোটিফিকেশন পাঠানো
+    admin_msg = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
+                 f"👤 **প্রেরক:** {sender_name}\n"
+                 f"🆔 **আইডি:** `{sender_id}`\n"
+                 f"━━━━━━━━━━━━━━━\n"
+                 f"📝 **কার মাধ্যমে এসেছে:** {referrer_detail}")
+    
     try:
-        await bot.send_message(ADMIN_ID, admin_report, parse_mode="Markdown")
+        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
     except:
         pass
-    
-    # ইউজারকে ফিরতি মেসেজ দেওয়া
+        
     success_text = ("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ওই আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n"
                     "🟢 আপনার রেফারেল রিসিভ করা হয়েছে।\n"
                     "👌 ধন্যবাদ")
     
     await message.answer(success_text, reply_markup=main_menu())
     await state.finish()
+@dp.message_handler(commands=['edit_ref'], user_id=ADMIN_ID)
+async def admin_edit_referral(message: types.Message):
+    try:
+        args = message.get_args().split()
+        if len(args) < 2:
+            return await message.answer("⚠️ ফরম্যাট: `/edit_ref আইডি সংখ্যা`")
+        
+        target_id, new_count = int(args[0]), int(args[1])
+        cursor.execute("UPDATE users SET referral_count = ? WHERE user_id = ?", (new_count, target_id))
+        db.commit()
+        
+        await message.answer(f"✅ ইউজার `{target_id}` এর রেফারেল সংখ্যা আপডেট করে `{new_count}` করা হয়েছে।")
+        try:
+            await bot.send_message(target_id, f"📢 আপনার মোট রেফারেল সংখ্যা আপডেট করা হয়েছে।\nবর্তমান রেফারেল: {new_count} জন।")
+        except: pass
+    except:
+        await message.answer("❌ ভুল আইডি বা সংখ্যা।")
     
 if __name__ == '__main__':
     keep_alive()
