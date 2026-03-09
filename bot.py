@@ -79,11 +79,12 @@ def work_v2_menu():
     return keyboard
 def rules_price_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # প্রতিটি নামের সাথে Rules যুক্ত করা হলো
+    # আপনার স্ক্রিনশট অনুযায়ী বাটনগুলোর নাম দেওয়া হলো
     keyboard.add("IG 2fa Rules", "IG Cookies Rules")
     keyboard.add("Ig mother account Rules", "Fb 00 fnd 2fa Rules")
     keyboard.add("🔄 রিফ্রেশ") 
     return keyboard
+                                                                     
     
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -568,21 +569,18 @@ async def admin_direct_msg(message: types.Message):
         await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
         
     except Exception as e:
-        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
 @dp.message_handler(lambda message: message.text == "🔴Rules & Price")
 async def rules_price_handler(message: types.Message):
-    text = (
-        "🔴 **Rules & Price**\n\n"
-        "🫱যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👎 নিচের বাটন থেকে সেটি সিলেক্ট করুন:"
+    await message.answer(
+        "👉 যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👇 নিচের বাটন থেকে সেটি সিলেক্ট করুন:",
+        reply_markup=rules_price_menu()
     )
-    await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
-# --- রুলস এবং প্রাইস দেখানোর নির্ভুল কোড ---
+    await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
 @dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 async def show_only_rules(message: types.Message):
     category = message.text
     msg = ""
     
-    # পয়েন্ট ১: Instagram 2fa
     if category == "IG 2fa Rules":
         msg = (
             "📌 **পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)**\n\n"
@@ -594,8 +592,6 @@ async def show_only_rules(message: types.Message):
             "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**\n\n"
             "ID Submit and Withdraw : [Click Here](https://t.me/your_link)"
         )
-    
-    # পয়েন্ট ২: IG Cookies
     elif category == "IG Cookies Rules":
         msg = (
             "📌 **পয়েন্ট ২: 📸 Instagram Cookies 00 Follower**\n\n"
@@ -606,18 +602,14 @@ async def show_only_rules(message: types.Message):
             "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
         )
-    
-    # পয়েন্ট ৩: IG Mother Account
     elif category == "Ig mother account Rules":
         msg = (
             "📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA) [V. Important]**\n\n"
             "💸 প্রাইস: প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)\n"
             "⚠️ নিয়ম: * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)。\n"
             "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
         )
-    
-    # পয়েন্ট ৪: FB 00 Fnd 2fa
     elif category == "Fb 00 fnd 2fa Rules":
         msg = (
             "📌 **পয়েন্ট ৪: 🔵 Facebook (FB00Fnd 2fa)**\n\n"
@@ -629,7 +621,7 @@ async def show_only_rules(message: types.Message):
     
     if msg:
         await message.answer(msg, parse_mode="Markdown", disable_web_page_preview=True)
-    
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
