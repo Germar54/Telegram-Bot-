@@ -71,6 +71,13 @@ def main_menu():
     keyboard.add("👥 Referral","🧑‍💻Support")
     keyboard.add("🔥Work Start v2")
     return keyboard
+def work_v2_menu():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    # এখানে আপনার নতুন কাজের নামগুলো দিন (যেমন: FB 2FA, IG Cookies ইত্যাদি)
+    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
+    keyboard.add("🔄 রিফ্রেশ") 
+    return keyboard
+
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
