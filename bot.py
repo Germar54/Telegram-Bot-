@@ -577,11 +577,14 @@ async def rules_price_handler(message: types.Message):
     )
     await message.answer(text, reply_markup=rules_price_menu(), parse_mode="Markdown")
 @dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
+# --- রুলস এবং প্রাইস দেখানোর নির্ভুল কোড ---
+@dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 async def show_only_rules(message: types.Message):
     category = message.text
     msg = ""
     
-    if "IG 2fa Rules" in category:
+    # পয়েন্ট ১: Instagram 2fa
+    if category == "IG 2fa Rules":
         msg = (
             "📌 **পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)**\n\n"
             "💸 প্রাইস: প্রতি পিস ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)\n"
@@ -592,7 +595,9 @@ async def show_only_rules(message: types.Message):
             "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**\n\n"
             "ID Submit and Withdraw : [Click Here](https://t.me/your_link)"
         )
-    elif "IG Cookies Rules" in category:
+    
+    # পয়েন্ট ২: IG Cookies
+    elif category == "IG Cookies Rules":
         msg = (
             "📌 **পয়েন্ট ২: 📸 Instagram Cookies 00 Follower**\n\n"
             "💸 প্রাইস: প্রতি পিস ৩.৯০ টাকা (১০০+ হলে ৪.১০ টাকা)\n"
@@ -602,27 +607,30 @@ async def show_only_rules(message: types.Message):
             "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
         )
-    elif "Ig mother account Rules" in category:
+    
+    # পয়েন্ট ৩: IG Mother Account
+    elif category == "Ig mother account Rules":
         msg = (
             "📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA) [V. Important]**\n\n"
             "💸 প্রাইস: প্রতি পিস ৮ টাকা (৫০+ হলে ৯ টাকা)\n"
             "⚠️ নিয়ম: * ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে, না হলে আইডি রিজেক্ট।\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)。\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: যেকোনো সময় (Anytime)\n"
             "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
         )
-    elif "Fb 00 fnd 2fa Rules" in category:
+    
+    # পয়েন্ট ৪: FB 00 Fnd 2fa
+    elif category == "Fb 00 fnd 2fa Rules":
         msg = (
             "📌 **পয়েন্ট ৪: 🔵 Facebook (FB00Fnd 2fa)**\n\n"
             "💸 প্রাইস: প্রতি পিস ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n"
             "⚠️ নিয়ম: * ❌ পাসওয়ার্ডের শেষে কোনো তারিখ দেওয়া যাবে না।\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n"
             "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
             "⏳ **রিপোর্ট টাইম: ৫ ঘণ্টা।**"
         )
     
     if msg:
-        await message.answer(msg, parse_mode="Markdown")
+        await message.answer(msg, parse_mode="Markdown", disable_web_page_preview=True)
+        
     
 if __name__ == '__main__':
     keep_alive()
