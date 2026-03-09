@@ -69,6 +69,7 @@ def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
     keyboard.add("Work start 🔥", "Withdraw")
     keyboard.add("👥 Referral","🧑‍💻Support")
+    keyboard.add("🔥Work Start v2")
     return keyboard
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -99,7 +100,13 @@ async def start(message: types.Message, state: FSMContext):
     
     # ৪. মেইন মেনু দেখানো
     await message.answer("একটি অপশন বেছে নিন:", reply_markup=main_menu())
-
+def work_v2_menu():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    # এখানে আপনি আপনার নতুন কাজের ক্যাটাগরি দিতে পারেন
+    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
+    keyboard.add("🔄 রিফ্রেশ") 
+    return keyboard
+    
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_work_type(message: types.Message, state: FSMContext):
@@ -108,7 +115,7 @@ async def ask_work_type(message: types.Message, state: FSMContext):
     
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb.add(types.InlineKeyboardButton("🗃️ File", callback_data="type_file"))
-    inline_kb.add(types.InlineKeyboardButton("👤 Single ID", callback_data="type_single"))
+    inline_kb.adqngle ID", callback_data="type_single"))
     
     await message.answer("✅ আপনার কাজের ধরণ বেছে নিন:", reply_markup=inline_kb)
 @dp.message_handler(lambda message: message.text == "Work start 🔥")
