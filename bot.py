@@ -42,6 +42,8 @@ db.commit()
 cursor.execute('''CREATE TABLE IF NOT EXISTS users 
                   (user_id INTEGER PRIMARY KEY, balance REAL DEFAULT 0, address TEXT)''')
 db.commit()
+cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
+db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
@@ -478,7 +480,57 @@ async def process_referral_info(message: types.Message, state: FSMContext):
     
     await message.answer("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ঐ আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n 🟢আপনার রেফারেল রিসিভ করা হয়েছে।\n👌 ধন্যবাদ", reply_markup=main_menu())
     await state.finish()
-                 
+     # ==========================================
+# অ্যাডমিন রেফারেল সংখ্যা এডিট করবে
+# ফরম্যাট: /edit_ref ইউজার_আইডি সংখ্যা
+# ==========================================
+@dp.message_handler(commands=['edit_ref'], user_id=ADMIN_ID)
+async def admin_edit_referral(message: types.Message):
+    try:
+        # কমান্ড থেকে আইডি এবং নতুন সংখ্যা আলাদা করা
+        args = message.get_args().split()
+        
+        if len(args) < 2:
+            return await message.answer("⚠️ সঠিক ফরম্যাট: `/edit_ref আইডি সংখ্যা` লিখুন।")
+        
+        target_id = int(args[0])
+        new_count = int(args[1])
+        
+        # ডাটাবেসে রেফারেল সংখ্যা আপডেট
+        cursor.execute("UPDATE users SET referral_count = ? WHERE user_id = ?", (new_count, target_id))
+        db.commit()
+        
+        await message.answer(f"✅ ইউজার `{target_id}` এর রেফারেল সংখ্যা আপডেট করে `{new_count}` করা হয়েছে।")
+        
+        # ইউজারকে নোটিফিকেশন পাঠানো (ঐচ্ছিক)
+        try:
+            await bot.send_message(target_id, f"📢 আপনার মোট রেফারেল সংখ্যা আপডেট করা হয়েছে।\nবর্তমান রেফারেল: {new_count} জন।")
+        except:
+            pass
+            
+    except ValueError:
+        await message.answer("❌ আইডি এবং সংখ্যা শুধুমাত্র নাম্বার হতে হবে।")
+    except Exception as e:
+        await message.answer(f"⚠️ ত্রুটি: {e}")
+@dp.message_handler(lambda message: message.text == "👥 Referral")
+async def referral_command(message: types.Message):
+    user_id = message.from_user.id
+    
+    # ডাটাবেস থেকে রেফারেল সংখ্যা আনা
+    cursor.execute("SELECT referral_count FROM users WHERE user_id = ?", (user_id,))
+    res = cursor.fetchone()
+    ref_count = res[0] if res else 0
+    
+    bot_info = await bot.get_me()
+    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
+    
+    text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
+            f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
+            f"আপনি কার মাধ্যমে এই বটে এসেছেন? তার **Username** লিখে নিচে পাঠান।")
+    
+    await message.answer(text, parse_mode="Markdown")
+    await BotState.waiting_for_referrer_info.set()
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
