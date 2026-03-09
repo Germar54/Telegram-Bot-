@@ -546,7 +546,24 @@ async def work_v2_options(message: types.Message, state: FSMContext):
     )
     
     await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
-    
+    @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
+async def admin_direct_msg(message: types.Message):
+    try:
+        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
+        args = message.get_args().split(maxsplit=1)
+        if len(args) < 2:
+            return await message.answer("⚠️ সঠিক ফরম্যাট: `/msg আইডি মেসেজ`")
+        
+        target_id = int(args[0])
+        text_to_send = args[1]
+        
+        # ইউজারের কাছে মেসেজ পাঠানো
+        await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}")
+        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
+        
+    except Exception as e:
+        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
+
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
