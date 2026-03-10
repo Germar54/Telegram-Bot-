@@ -99,7 +99,7 @@ async def start(message: types.Message, state: FSMContext):
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
     # ৪. মেইন মেনু দেখানো
-    await message.answer("✅Instagram 2fa : 🔥Work Start\n🟢 Instagram cookies & FB 00 Fnd 2fa:\n🔥WorkStart v2", reply_markup=main_menu())
+    await message.answer("✅Instagram 2fa &\n Mother ACCOUNT ↓↓\n 🔥Work Start\n\n🟢 Instagram cookies &\n FB 00 Fnd 2fa↓↓\n🔥WorkStart v2", reply_markup=main_menu())
     
 # =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
@@ -121,13 +121,14 @@ async def work_start(message: types.Message):
     keyboard.add("🔄 রিফ্রেশ") 
     
     msg = """🤩Mail: * 3tx0zztil1@xkxkud.com *
-             Pass: * RJR83@RdFr2@ *
+    Pass: * RJR83@RdFr2@ *
 
     🤩Mail: * 377guy1zb4@dollicons.com *
     Pass: * RJR83@RdFr2@ *
 
     🤩Mail: * icufc65r6j@dollicons.com *
     Pass: * RJR83@RdFr2@ *
+    
     👍 যেকোনো সমস্যায়: @Dinanhaji !
     🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"""
     await message.answer(msg, reply_markup=keyboard)
@@ -286,7 +287,7 @@ async def withdraw_done(message: types.Message, state: FSMContext):
             await message.answer(f"✅ উইথড্র সফল! {amount} ৳ কেটে নেওয়া হয়েছে।\nবর্তমান ব্যালেন্স: {new_balance} ৳", reply_markup=main_menu())
         await state.finish()
     except:
-        await message.answer("❌ শুধু সংখ্যা লিখুন। অথবা মেথড চেঞ্জ বাটনে ক্লিক করুন।")
+        await message.answer("❌ শুধু সংখ্যা লিখুন। অথবা মেথড চেঞ্জ বাটনে ক্লিক করুন।\n🤨 বুঝতে সমস্যা হলে আবার নতুন করে /start করুন")
 
 # ==========================================
 # ৪. এডমিন প্যানেল
@@ -455,11 +456,11 @@ async def referral_command(message: types.Message):
     # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
     text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
             f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
-            f"    📮    **Attention**\n"
+            f".......📮**Attention**.......\n\n"
             f"🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।\n"
             f"🚨 👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে ব্যালেন্স করবে।\n"
-            f"🔥 আপনি কার মাধ্যমে এই বটে এসেছেন?\n"
-            f"💣 তার Username অথবা User ID লিখে নিচে পাঠান।")
+            f"🔥 আপনি কার মাধ্যমে এই বটে এসেছেন?\n\n\n"
+            f"💣 তার Username অথবা User ID লিখে নিচে পাঠান\n...↓↓↓↓নইতো /start দিন")
     
     await message.answer(text, parse_mode="Markdown")
     # ইউজারের ইনপুট নেওয়ার জন্য স্টেট সেট করা
@@ -484,7 +485,7 @@ async def process_referral_info(message: types.Message, state: FSMContext):
     except:
         pass
         
-    success_text = ("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে এবং ওই আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n"
+    success_text = ("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে\n এবং ওই আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n\n"
                     "🟢 আপনার রেফারেল রিসিভ করা হয়েছে।\n"
                     "👌 ধন্যবাদ")
     
@@ -587,7 +588,7 @@ def rules_price_menu():
 @dp.message_handler(lambda message: message.text == "🔴Rules & Price")
 async def rules_price_handler(message: types.Message):
     await message.answer(
-        "👉 যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👇 নিচের বাটন থেকে সেটি সিলেক্ট করুন:",
+        "👉 যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n\n👇 নিচের বাটন থেকে সেটি সিলেক্ট করুন:",
         reply_markup=rules_price_menu()
     )
 
@@ -612,25 +613,25 @@ async def show_only_rules(message: types.Message):
             "💸 প্রাইস: ৩.৯০ টাকা (৪.১০ টাকা)\n\n"
             "⚠️ নিয়ম: ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n\n"
             "📄 শীট ফরম্যাট: **User-pass**\n\n"
-            "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n"
+            "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n\n"
             "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
         )
     elif category == "Ig mother account Rules":
         msg = (
             "📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)**\n\n"
-            "💸 প্রাইস: ৮ টাকা (৫০+ হলে ৯ টাকা)\n"
+            "💸 প্রাইস: ৮ টাকা (৫০+ হলে ৯ টাকা)\n\n"
             "📄 শীট ফরম্যাট: User-pass-2fa\n\n"
-            "⚠️ নিয়ম: ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে।\n"
-            "⏰ লাস্ট টাইম: যেকোনো সময় (Anytime)。\n"
+            "⚠️ নিয়ম: ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে।\n\n"
+            "⏰ লাস্ট টাইম: যেকোনো সময় (Anytime)。\n\n"
             "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
         )
     elif category == "Fb 00 fnd 2fa Rules":
         msg = (
             "📌 **পয়েন্ট ৪: 🔵 Facebook (FB00Fnd 2fa)**\n\n"
-            "💸 প্রাইস: ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n"
+            "💸 প্রাইস: ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n\n"
             "📄 শীট ফরম্যাট: User-pass-2fa\n\n"
-            "⚠️ নিয়ম: ❌ পাসওয়ার্ডের শেষে তারিখ দেওয়া যাবে না।\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n"
+            "⚠️ নিয়ম: ❌ পাসওয়ার্ডের শেষে তারিখ দেওয়া যাবে না।\n\n"
+            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n\n"
             "⏳ **রিপোর্ট টাইম: ৫ ঘণ্টা।**"
         )
     
