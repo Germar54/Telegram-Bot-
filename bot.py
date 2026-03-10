@@ -568,7 +568,7 @@ async def admin_direct_msg(message: types.Message):
         await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}")
         await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
         
-    except Exception as e:
+except Exception as e:
 @dp.message_handler(lambda message: message.text == "🔴Rules & Price")
 async def rules_price_handler(message: types.Message):
     await message.answer(
