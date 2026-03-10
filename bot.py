@@ -126,7 +126,16 @@ async def work_start(message: types.Message):
     keyboard.add("IG Mother Account", "IG 2fa")
     keyboard.add("🔄 রিফ্রেশ") 
     
-    msg = "👍 যেকোনো সমস্যায়: @Dinanhaji !\n🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"
+    msg = """🤩Mail: `3tx0zztil1@xkxkud.com`
+             Pass: `RJR83@RdFr2@`
+
+             🤩Mail: `377guy1zb4@dollicons.com`
+             Pass: `RJR83@RdFr2@`
+
+             🤩Mail: `icufc65r6j@dollicons.com`
+              Pass: `RJR83@RdFr2@`
+             👍 যেকোনো সমস্যায়: @Dinanhaji !
+             🔴 আপনার কাজের ক্যাটাগরি বেছে নিন:"""
     await message.answer(msg, reply_markup=keyboard)
     
 
