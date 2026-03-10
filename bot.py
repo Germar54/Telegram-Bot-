@@ -120,7 +120,8 @@ async def work_start(message: types.Message):
     keyboard.add("IG Mother Account", "IG 2fa")
     keyboard.add("🔄 রিফ্রেশ") 
     
-    msg = """🤩Mail: * 3tx0zztil1@xkxkud.com *
+    msg = """Nord VPN 🫱
+    🤩Mail: * 3tx0zztil1@xkxkud.com *
     Pass: * RJR83@RdFr2@ *
 
     🤩Mail: * 377guy1zb4@dollicons.com *
