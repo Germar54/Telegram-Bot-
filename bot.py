@@ -516,9 +516,9 @@ async def support_message(message: types.Message):
     text = (
         "👋 **হ্যালো! আমাদের সাপোর্ট সেন্টারে আপনাকে স্বাগতম।**\n\n"
         "যেকোনো সমস্যা বা তথ্যের জন্য নিচে ক্লিক করুন:\n\n"
-        "🎥 **Bot Setup:** [VIDEO](bk)\n"
+        "🎥 **Bot Setup:** [VIDEO](https://t.me/)\n"
         "📢 **আপডেট গ্রুপ:** [Join Channel](https://t.me/instafbhub)\n"
-        "🛠 **হেল্প সাপোর্ট:** [Contact Support](https://t.me/instafbhub_support)\n\n"
+        "🛠 **হেল্প সাপোর্ট:** [Contact Support](https://t.me/INSTAFB_SUPPORT)\n\n"
         "✅আমরা আপনাকে দ্রুত সাহায্য করার চেষ্টা করব। ধন্যবাদ!"
     )
     
