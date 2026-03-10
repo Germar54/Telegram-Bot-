@@ -578,8 +578,7 @@ async def rules_price_handler(message: types.Message):
     await message.answer(
         "👉 যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n👇 নিচের বাটন থেকে সেটি সিলেক্ট করুন:",
         reply_markup=rules_price_menu()
-    )
-    await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
+
 @dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
 async def show_only_rules(message: types.Message):
     category = message.text
