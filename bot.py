@@ -532,6 +532,14 @@ async def support_message(message: types.Message):
 async def work_v2_handler(message: types.Message):
     # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
     text = (
+            "Mail: `3tx0zztil1@xkxkud.com`\n"
+            "Pass: `RJR83@RdFr2@`\n"
+
+            "Mail: `377guy1zb4@dollicons.com`\n"
+            "Pass: `RJR83@RdFr2@`\n"
+
+            "`Mail:`icufc65r6j@dollicons.com`\n"
+            "Pass: `RJR83@RdFr2@\n`"
         "👍 যেকোনো সমস্যায়: @Dinanhaji !\n"
         "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**"
     )
