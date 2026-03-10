@@ -542,21 +542,35 @@ async def work_v2_handler(message: types.Message):
     await message.answer(text, reply_markup=work_v2_menu(), parse_mode="Markdown")
 
 # ৩. ক্যাটাগরি সিলেক্ট করার হ্যান্ডলার
+# ৩. ক্যাটাগরি সিলেক্ট করার হ্যান্ডলার
 @dp.message_handler(lambda message: message.text in ["FB 00 Fnd 2fa", "IG Cookies"])
 async def work_v2_options(message: types.Message, state: FSMContext):
     await state.update_data(category=message.text)
     
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="type_file"))
-    inline_kb.add(types.InlineKeyboardButton("🆔 Single ID", callback_data="type_single"))
+    # ইনলাইন কিবোর্ড তৈরি (row_width সেট করা হয়েছে যাতে বাটনগুলো সাজানো থাকে)
+    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    
+    # সাধারণ ফাইল এবং সিঙ্গেল আইডি বাটন
+    btn_file = types.InlineKeyboardButton("📁 File", callback_data="type_file")
+    btn_single = types.InlineKeyboardButton("🆔 Single ID", callback_data="type_single")
+    
+    # শর্ত: শুধুমাত্র IG Cookies হলে নতুন বাটনটি যোগ হবে
+    if message.text == "IG Cookies":
+        # এখানে 'your_link' এর জায়গায় আপনার আসল টেলিগ্রাম লিংক দিন
+        btn_submit_link = types.InlineKeyboardButton("🔗 Submit Link", url="https://t.me/instafbhub/42")
+        inline_kb.add(btn_file, btn_single) # প্রথম সারিতে দুই বাটন
+        inline_kb.add(btn_submit_link)      # তার নিচে বড় সাবমিট বাটন
+    else:
+        inline_kb.add(btn_file, btn_single) # অন্য ক্যাটাগরিতে শুধু এই দুটি থাকবে
     
     msg_text = (
         f"✅ আপনি বেছে নিয়েছেন: **{message.text}**\n"
         "━━━━━━━━━━━━━━━\n"
         "এখন কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।"
     )
-    await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
     
+    await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
+                      
 #মেসেজ
 @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
 async def admin_direct_msg(message: types.Message):
