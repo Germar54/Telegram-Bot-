@@ -553,6 +553,7 @@ async def work_v2_options(message: types.Message, state: FSMContext):
     )
     
     await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
+#মেসেজ
 @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
 async def admin_direct_msg(message: types.Message):
     try:
@@ -568,6 +569,9 @@ async def admin_direct_msg(message: types.Message):
         await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}")
         await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
         
+    except Exception as e:
+        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
+
 except Exception as e:
 @dp.message_handler(lambda message: message.text == "🔴Rules & Price")
 async def rules_price_handler(message: types.Message):
