@@ -71,12 +71,6 @@ def main_menu():
     keyboard.add("👥 Referral","🧑‍💻Support")
     keyboard.add("🔥Work Start v2", "🔴Rules & Price")
     return keyboard
-def work_v2_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # এখানে আপনার নতুন কাজের নামগুলো দিন (যেমন: FB 2FA, IG Cookies ইত্যাদি)
-    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
-    keyboard.add("🔄 রিফ্রেশ") 
-    return keyboard  
     
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -528,40 +522,39 @@ async def support_message(message: types.Message):
     
     # parse_mode="Markdown" অবশ্যই থাকতে হবে নাহলে লিঙ্ক কাজ করবে না
     await message.answer(text, parse_mode="Markdown", disable_web_page_preview=True)
-@dp.message_handler(lambda message: message.text == "🔥Work Start v2")
+
+# ১. মেনু বাটন ফাংশন (নিশ্চিত করুন নামটি সঠিক)
+def work_v2_menu():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
+    keyboard.add("🔄 রিফ্রেশ") 
+    return keyboard
+
+# ২. মেইন বাটন হ্যান্ডলার (v2 ওপেন করার জন্য)
+@dp.message_handler(lambda message: "Work Start v2" in message.text or message.text == "🔥Work Start v2")
 async def work_v2_handler(message: types.Message):
-    # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
     text = (
-            "Mail: `3tx0zztil1@xkxkud.com`\n"
-            "Pass: `RJR83@RdFr2@`\n"
-
-            "Mail: `377guy1zb4@dollicons.com`\n"
-            "Pass: `RJR83@RdFr2@`\n"
-
-            "`Mail:`icufc65r6j@dollicons.com`\n"
-            "Pass: `RJR83@RdFr2@\n`"
-        "👍 যেকোনো সমস্যায়: @Dinanhaji !\n"
-        "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**"
+        "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**\n"
+        "👍 যেকোনো সমস্যায়: @Dinanhaji !"
     )
     await message.answer(text, reply_markup=work_v2_menu(), parse_mode="Markdown")
-      # FB 00 Fnd 2fa এবং IG Cookies বাটনের জন্য কাজ
+
+# ৩. ক্যাটাগরি সিলেক্ট করার হ্যান্ডলার
 @dp.message_handler(lambda message: message.text in ["FB 00 Fnd 2fa", "IG Cookies"])
 async def work_v2_options(message: types.Message, state: FSMContext):
-    # ইউজারের সিলেক্ট করা ক্যাটাগরি সেভ করা
     await state.update_data(category=message.text)
     
-    # ফাইল এবং সিঙ্গেল আইডি অপশন (ইনলাইন বাটন)
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb.add(types.InlineKeyboardButton("📁 File", callback_data="type_file"))
     inline_kb.add(types.InlineKeyboardButton("🆔 Single ID", callback_data="type_single"))
     
     msg_text = (
         f"✅ আপনি বেছে নিয়েছেন: **{message.text}**\n"
-        f"━━━━━━━━━━━━━━━\n"
-        f"এখন আপনি কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।\n\n🔙 মেইন মেনুতে ফিরে যেতে/start\n"
+        "━━━━━━━━━━━━━━━\n"
+        "এখন কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।"
     )
-    
     await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
+    
 #মেসেজ
 @dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
 async def admin_direct_msg(message: types.Message):
