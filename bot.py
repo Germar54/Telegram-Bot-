@@ -572,7 +572,7 @@ async def admin_direct_msg(message: types.Message):
     except Exception as e:
         await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
 
-except Exception as e:
+
 @dp.message_handler(lambda message: message.text == "🔴Rules & Price")
 async def rules_price_handler(message: types.Message):
     await message.answer(
