@@ -557,7 +557,7 @@ async def work_v2_options(message: types.Message, state: FSMContext):
     # শর্ত: শুধুমাত্র IG Cookies হলে নতুন বাটনটি যোগ হবে
     if message.text == "IG Cookies":
         # এখানে 'your_link' এর জায়গায় আপনার আসল টেলিগ্রাম লিংক দিন
-        btn_submit_link = types.InlineKeyboardButton("🔗 Submit Link", url="https://t.me/instafbhub/42")
+        btn_submit_link = types.InlineKeyboardButton("🔗 Submit Link", url="https://t.me/instafbhub/80")
         inline_kb.add(btn_file, btn_single) # প্রথম সারিতে দুই বাটন
         inline_kb.add(btn_submit_link)      # তার নিচে বড় সাবমিট বাটন
     else:
