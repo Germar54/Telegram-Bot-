@@ -67,9 +67,12 @@ async def is_blocked(user_id):
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("Work start 🔥", "Withdraw")
-    keyboard.add("👥 Referral","🧑‍💻Support")
-    keyboard.add("🔥Work Start v2", "🔴Rules & Price")
+    # প্রথম সারি: দুই ধরণের কাজের বাটন
+    keyboard.row("Work start 🔥", "🔥Work Start v2")
+    # দ্বিতীয় সারি: টাকা তোলা এবং রেফারেল
+    keyboard.row("Withdraw", "👥 Referral")
+    # তৃতীয় সারি: সাপোর্ট এবং রুলস
+    keyboard.row("🧑‍💻Support", "🔴Rules & Price")
     return keyboard
     
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
