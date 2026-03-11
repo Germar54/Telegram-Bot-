@@ -44,14 +44,15 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
 db.commit()
+cursor.execute('''CREATE TABLE IF NOT EXISTS teams 
+                  (team_id INTEGER PRIMARY KEY AUTOINCREMENT, leader_id INTEGER, team_name TEXT)''')
+db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
     waiting_for_address = State()
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
-    waiting_for_add_money = State()
-    # নিচে এই ৩টি লাইন লিখে দিন
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
@@ -60,20 +61,29 @@ class BotState(StatesGroup):
     waiting_for_admin_msg = State()
     waiting_for_team_name = State()
     waiting_for_referrer_info = State() # এটি নতুন যোগ করুন
-    
+    waiting_for_team_name = State() 
+    waiting_for_join_team = State()
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    # প্রথম সারি: দুই ধরণের কাজের বাটন
+    
+    # প্রথম সারি: দুই ধরণের কাজের বাটন একসাথে
     keyboard.row("Work start 🔥", "🔥Work Start v2")
-    # দ্বিতীয় সারি: টাকা তোলা এবং রেফারেল
-    keyboard.row("💵Withdraw", "👥 Referral")
+    
+    # দ্বিতীয় সারি: রেফারেল এবং উইথড্র একসাথে
+    keyboard.row("👥 Referral", "Withdraw")
+    
     # তৃতীয় সারি: সাপোর্ট এবং রুলস
     keyboard.row("🧑‍💻Support", "🔴Rules & Price")
+    
+    # চতুর্থ সারি: আপনার নতুন টিমওয়ার্ক বাটন
+    keyboard.row("🫂 Teamwork")
+    
     return keyboard
+    
     
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
@@ -655,6 +665,41 @@ async def show_only_rules(message: types.Message):
     
     if msg:
         await message.answer(msg, parse_mode="Markdown")
+@dp.message_handler(lambda message: message.text == "🫂 Teamwork")
+async def teamwork_options(message: types.Message):
+    inline_kb = types.InlineKeyboardMarkup(row_width=1)
+    btn_create = types.InlineKeyboardButton("🗣️ Create a Team", callback_data="create_team")
+    btn_my_team = types.InlineKeyboardButton("🧐 My Team", callback_data="my_team")
+    inline_kb.add(btn_create, btn_my_team)
+    
+    await message.answer("👥 **টিম ম্যানেজমেন্ট মেনু**\nনিচের যেকোনো একটি অপশন বেছে নিন:", reply_markup=inline_kb, parse_mode="Markdown")
+    # 'Create Team' বাটনের কলব্যাক
+@dp.callback_query_handler(text="create_team")
+async def ask_team_name(call: types.CallbackQuery):
+    # চেক করা হচ্ছে ইউজারের আগে থেকে কোনো টিম আছে কি না
+    cursor.execute("SELECT team_name FROM teams WHERE leader_id = ?", (call.from_user.id,))
+    existing_team = cursor.fetchone()
+    
+    if existing_team:
+        await call.message.answer(f"❌ আপনার অলরেডি একটি টিম আছে: **{existing_team[0]}**")
+        await call.answer()
+    else:
+        await call.message.answer("📝 আপনার টিমের জন্য একটি সুন্দর নাম দিন:")
+        await BotState.waiting_for_team_name.set()
+        await call.answer()
+
+# নাম রিসিভ করার হ্যান্ডলার
+@dp.message_handler(state=BotState.waiting_for_team_name)
+async def save_team_name(message: types.Message, state: FSMContext):
+    team_name = message.text
+    leader_id = message.from_user.id
+    
+    # ডাটাবেসে সেভ করা
+    cursor.execute("INSERT INTO teams (leader_id, team_name) VALUES (?, ?)", (leader_id, team_name))
+    db.commit()
+    
+    await message.answer(f"✅ অভিনন্দন! আপনার টিম **'{team_name}'** সফলভাবে তৈরি হয়েছে।", reply_markup=main_menu())
+    await state.finish()
     
 if __name__ == '__main__':
     keep_alive()
