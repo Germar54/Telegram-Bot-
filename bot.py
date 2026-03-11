@@ -70,7 +70,7 @@ def main_menu():
     # প্রথম সারি: দুই ধরণের কাজের বাটন
     keyboard.row("Work start 🔥", "🔥Work Start v2")
     # দ্বিতীয় সারি: টাকা তোলা এবং রেফারেল
-    keyboard.row("Withdraw", "👥 Referral")
+    keyboard.row("💵Withdraw", "👥 Referral")
     # তৃতীয় সারি: সাপোর্ট এবং রুলস
     keyboard.row("🧑‍💻Support", "🔴Rules & Price")
     return keyboard
@@ -243,7 +243,7 @@ async def handle_file(message: types.Message, state: FSMContext):
 # ==========================================
 # ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
 # ==========================================
-@dp.message_handler(lambda message: message.text == "Withdraw")
+@dp.message_handler(lambda message: message.text == "💵Withdraw")
 async def withdraw_process(message: types.Message):
     cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
     res = cursor.fetchone()
