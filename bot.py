@@ -841,7 +841,47 @@ async def show_member_list(call: types.CallbackQuery):
 
     await call.message.answer(list_text, parse_mode="Markdown")
     await call.answer()
+    # এই কোডটি ফাইলের একদম শেষে যুক্ত করুন
+@dp.callback_query_handler(lambda c: c.data.startswith('list_'))
+async def show_member_list(call: types.CallbackQuery):
+    t_id = call.data.split('_')[1]
+    user_id = call.from_user.id
     
+    # ১. চেক করা হচ্ছে ক্লিককারী কি ওই টিমের আসল লিডার?
+    cursor.execute("SELECT leader_id FROM teams WHERE team_id = ?", (t_id,))
+    leader_res = cursor.fetchone()
+    
+    if not leader_res or leader_res[0] != user_id:
+        # যদি লিডার না হয় তবে তাকে অ্যালার্ট দেখাবে
+        await call.answer("❌ শুধুমাত্র টিম লিডার মেম্বার লিস্ট দেখতে পারবেন!", show_alert=True)
+        return
+
+    # ২. ডাটাবেস থেকে মেম্বারদের আইডি খুঁজে বের করা
+    cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
+    members = cursor.fetchall()
+    
+    if not members:
+        await call.message.answer("📝 আপনার টিমে এখনো কোনো মেম্বার জয়েন করেনি।")
+        await call.answer()
+        return
+
+    # ৩. লিস্ট তৈরি করা
+    list_text = "📜 **আপনার টিমের মেম্বার লিস্ট:**\n\n"
+    list_text += f"👑 লিডার: {call.from_user.mention}\n"
+    
+    for index, member in enumerate(members, start=1):
+        try:
+            # টেলিগ্রাম থেকে মেম্বারের নাম বা ইউজারনেম নেওয়া
+            member_info = await bot.get_chat(member[0])
+            username = f"@{member_info.username}" if member_info.username else member_info.full_name
+            list_text += f"{index}. {username} (ID: `{member[0]}`)\n"
+        except:
+            # যদি মেম্বারকে খুঁজে না পাওয়া যায়
+            list_text += f"{index}. Unknown User (ID: `{member[0]}`)\n"
+
+    await call.message.answer(list_text, parse_mode="Markdown")
+    await call.answer()
+
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
