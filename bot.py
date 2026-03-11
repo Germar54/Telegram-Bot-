@@ -47,6 +47,10 @@ db.commit()
 cursor.execute('''CREATE TABLE IF NOT EXISTS teams 
                   (team_id INTEGER PRIMARY KEY AUTOINCREMENT, leader_id INTEGER, team_name TEXT)''')
 db.commit()
+# মেম্বারদের তথ্য রাখার জন্য টেবিল
+cursor.execute('''CREATE TABLE IF NOT EXISTS team_members 
+                  (team_id INTEGER, user_id INTEGER, PRIMARY KEY(team_id, user_id))''')
+db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
@@ -91,7 +95,27 @@ async def start(message: types.Message, state: FSMContext):
     await state.finish() 
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
+    # --- টিম জয়েনিং লজিক (৯৮ নম্বর লাইন থেকে শুরু করুন) ---
+    args = message.get_args()
+    if args and args.startswith('join_'):
+        t_id = args.split('_')[1]
+        try:
+            # চেক করা হচ্ছে ইউজার অলরেডি কোনো টিমে আছে কি না
+            cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (message.from_user.id,))
+            already_member = cursor.fetchone()
+            cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (message.from_user.id,))
+            already_leader = cursor.fetchone()
 
+            if already_member or already_leader:
+                await message.answer("⚠️ আপনি ইতিমধ্যে একটি টিমে আছেন।")
+            else:
+                cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, message.from_user.id))
+                db.commit()
+                await message.answer("✅ অভিনন্দন! আপনি সফলভাবে টিমে জয়েন করেছেন।")
+        except:
+            await message.answer("❌ টিমে জয়েন করতে সমস্যা হয়েছে।")
+    # --- জয়েনিং লজিক শেষ ---
+    
     # ১. এখানে বাটন তৈরি হচ্ছে
     inline_kb = types.InlineKeyboardMarkup()
     inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
@@ -700,7 +724,75 @@ async def save_team_name(message: types.Message, state: FSMContext):
     
     await message.answer(f"✅ অভিনন্দন! আপনার টিম **'{team_name}'** সফলভাবে তৈরি হয়েছে।", reply_markup=main_menu())
     await state.finish()
+@dp.callback_query_handler(text="my_team")
+async def show_my_team(call: types.CallbackQuery):
+    user_id = call.from_user.id
     
+    # চেক করা হচ্ছে ইউজার কি কোনো টিমের লিডার?
+    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (user_id,))
+    leader_team = cursor.fetchone()
+    
+    # চেক করা হচ্ছে ইউজার কি কোনো টিমের মেম্বার?
+    cursor.execute("SELECT t.team_id, t.team_name FROM teams t JOIN team_members m ON t.team_id = m.team_id WHERE m.user_id = ?", (user_id,))
+    member_team = cursor.fetchone()
+    
+    team_info = leader_team or member_team
+    
+    if team_info:
+        t_id, t_name = team_info
+        # মেম্বার সংখ্যা গণনা
+        cursor.execute("SELECT COUNT(*) FROM team_members WHERE team_id = ?", (t_id,))
+        count = cursor.fetchone()[0]
+        # লিডারসহ মোট সংখ্যা (লিডার টেবিল আলাদা তাই +১)
+        total_members = count + 1 
+
+        text = (f"🧐 **টিম প্রোফাইল**\n\n"
+                f"🏠 টিমের নাম: `{t_name}`\n"
+                f"👥 মোট সদস্য: {total_members} জন\n"
+                f"📊 স্ট্যাটাস: একটিভ\n\n"
+                f"নিচের বাটন থেকে আপনার মেম্বার ম্যানেজ করুন:")
+        
+        inline_kb = types.InlineKeyboardMarkup(row_width=2)
+        btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
+        btn_leave = types.InlineKeyboardButton("🚪 Leave/Delete Team", callback_data=f"leave_{t_id}")
+        inline_kb.add(btn_add, btn_leave)
+        
+        await call.message.answer(text, reply_markup=inline_kb, parse_mode="Markdown")
+    else:
+        await call.message.answer("❌ আপনি কোনো টিমে নেই। একটি টিম তৈরি করুন।")
+    await call.answer()
+@dp.callback_query_handler(lambda c: c.data.startswith('add_'))
+async def add_member_info(call: types.CallbackQuery):
+    t_id = call.data.split('_')[1]
+    # মেম্বার অ্যাড করার জন্য একটি ইনভাইট লিংক তৈরি (বটের ইউজারনেম দিয়ে)
+    bot_info = await bot.get_me()
+    invite_link = f"https://t.me/{bot_info.username}?start=join_{t_id}"
+    
+    await call.message.answer(f"➕ **মেম্বার অ্যাড করার নিয়ম:**\n\n"
+                            f"নিচের লিঙ্কটি আপনার মেম্বারকে পাঠান। সে লিঙ্কে ক্লিক করে 'Start' দিলেই আপনার টিমে যুক্ত হয়ে যাবে:\n\n"
+                            f"`{invite_link}`", parse_mode="Markdown")
+    await call.answer()
+
+@dp.callback_query_handler(lambda c: c.data.startswith('leave_'))
+async def leave_team(call: types.CallbackQuery):
+    user_id = call.from_user.id
+    t_id = call.data.split('_')[1]
+    
+    # চেক: লিডার কি না? লিডার লিভ নিলে টিম ডিলিট হবে
+    cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (user_id,))
+    is_leader = cursor.fetchone()
+    
+    if is_leader:
+        cursor.execute("DELETE FROM teams WHERE team_id = ?", (t_id,))
+        cursor.execute("DELETE FROM team_members WHERE team_id = ?", (t_id,))
+        await call.message.answer("🗑️ আপনার টিমটি ডিলিট করা হয়েছে।")
+    else:
+        cursor.execute("DELETE FROM team_members WHERE team_id = ? AND user_id = ?", (t_id, user_id))
+        await call.message.answer("🚪 আপনি টিম থেকে লিভ নিয়েছেন।")
+    
+    db.commit()
+    await call.answer()
+
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
