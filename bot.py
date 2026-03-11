@@ -44,6 +44,9 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
 db.commit()
+cursor.execute('''CREATE TABLE IF NOT EXISTS teams 
+                  (team_id INTEGER PRIMARY KEY AUTOINCREMENT, creator_id INTEGER, team_name TEXT)''')
+db.commit()
 
 class BotState(StatesGroup):
     waiting_for_file = State()
@@ -58,7 +61,7 @@ class BotState(StatesGroup):
     waiting_for_block_reason = State() 
     waiting_for_target_id = State()
     waiting_for_admin_msg = State()
-    # আপনার আগের স্টেটগুলো থাকবে...
+    waiting_for_team_name = State()
     waiting_for_referrer_info = State() # এটি নতুন যোগ করুন
     
 async def is_blocked(user_id):
@@ -652,6 +655,38 @@ async def show_only_rules(message: types.Message):
     
     if msg:
         await message.answer(msg, parse_mode="Markdown")
+    # --- ১. টিম মেনু কিবোর্ড ---
+def team_options_menu():
+    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard.add("Create Team👥", "My Team Information") # আপনি চাইলে আরও বাটন যোগ করতে পারেন
+    keyboard.add("🔙 Back to Main")
+    return keyboard
+
+# --- ২. "Team Work" এ ক্লিক করলে যা হবে ---
+@dp.message_handler(lambda message: message.text == "👥 Team Work")
+async def team_work_main(message: types.Message):
+    await message.answer("👥 টিম ওয়ার্ক সেকশনে স্বাগতম। আপনি কি নতুন টিম তৈরি করতে চান?", 
+                         reply_markup=team_options_menu())
+
+# --- ৩. "Create Team👥" এ ক্লিক করলে নাম চাইবে ---
+@dp.message_handler(lambda message: message.text == "Create Team👥")
+async def ask_team_name(message: types.Message):
+    await message.answer("📝 আপনার টিমের একটি সুন্দর নাম দিন:")
+    await BotState.waiting_for_team_name.set()
+
+# --- ৪. টিমের নাম সেভ করা ---
+@dp.message_handler(state=BotState.waiting_for_team_name)
+async def save_team_name(message: types.Message, state: FSMContext):
+    team_name = message.text
+    user_id = message.from_user.id
+    
+    # ডাটাবেসে টিমের নাম সেভ করা
+    cursor.execute("INSERT INTO teams (creator_id, team_name) VALUES (?, ?)", (user_id, team_name))
+    db.commit()
+    
+    await message.answer(f"✅ অভিনন্দন! আপনার টিম **'{team_name}'** সফলভাবে তৈরি হয়েছে।\nএখন থেকে আপনি আনলিমিটেড মেম্বার নিয়ে কাজ করতে পারবেন।", 
+                         reply_markup=main_menu())
+    await state.finish()
     
 if __name__ == '__main__':
     keep_alive()
