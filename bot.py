@@ -730,21 +730,27 @@ async def show_my_team(call: types.CallbackQuery):
     
     # চেক করা হচ্ছে ইউজার কি কোনো টিমের লিডার?
     cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (user_id,))
-    leader_team = cursor.fetchone()
+    leader_info = cursor.fetchone()
     
     # চেক করা হচ্ছে ইউজার কি কোনো টিমের মেম্বার?
-    cursor.execute("SELECT t.team_id, t.team_name FROM teams t JOIN team_members m ON t.team_id = m.team_id WHERE m.user_id = ?", (user_id,))
-    member_team = cursor.fetchone()
+    cursor.execute("""
+        SELECT t.team_id, t.team_name 
+        FROM teams t 
+        JOIN team_members m ON t.team_id = m.team_id 
+        WHERE m.user_id = ?
+    """, (user_id,))
+    member_info = cursor.fetchone()
     
-    team_info = leader_team or member_team
+    # লিডার অথবা মেম্বার যেকোনো একটি তথ্য পেলে সেটি ব্যবহার করা হবে
+    team_data = leader_info or member_info
     
-    if team_info:
-        t_id, t_name = team_info
-        # মেম্বার সংখ্যা গণনা
+    if team_data:
+        t_id, t_name = team_data
+        
+        # মেম্বার সংখ্যা গণনা (লিডার ১ জন + মেম্বার টেবিলের সংখ্যা)
         cursor.execute("SELECT COUNT(*) FROM team_members WHERE team_id = ?", (t_id,))
-        count = cursor.fetchone()[0]
-        # লিডারসহ মোট সংখ্যা (লিডার টেবিল আলাদা তাই +১)
-        total_members = count + 1 
+        member_count = cursor.fetchone()[0]
+        total_members = member_count + 1 
 
         text = (f"🧐 **টিম প্রোফাইল**\n\n"
                 f"🏠 টিমের নাম: `{t_name}`\n"
@@ -752,15 +758,22 @@ async def show_my_team(call: types.CallbackQuery):
                 f"📊 স্ট্যাটাস: একটিভ\n\n"
                 f"নিচের বাটন থেকে আপনার মেম্বার ম্যানেজ করুন:")
         
+        # --- ইনলাইন কিবোর্ড সেকশন (আপনার দেওয়া নতুন বাটনসহ) ---
         inline_kb = types.InlineKeyboardMarkup(row_width=2)
         btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
         btn_leave = types.InlineKeyboardButton("🚪 Leave/Delete Team", callback_data=f"leave_{t_id}")
+        # নতুন বাটন
+        btn_list = types.InlineKeyboardButton("📜 Member List", callback_data=f"list_{t_id}")
+
         inline_kb.add(btn_add, btn_leave)
+        inline_kb.add(btn_list) # আলাদা লাইনে লিস্ট বাটন
         
         await call.message.answer(text, reply_markup=inline_kb, parse_mode="Markdown")
     else:
         await call.message.answer("❌ আপনি কোনো টিমে নেই। একটি টিম তৈরি করুন।")
+    
     await call.answer()
+        
 @dp.callback_query_handler(lambda c: c.data.startswith('add_'))
 async def add_member_info(call: types.CallbackQuery):
     t_id = call.data.split('_')[1]
@@ -792,7 +805,43 @@ async def leave_team(call: types.CallbackQuery):
     
     db.commit()
     await call.answer()
+@dp.callback_query_handler(lambda c: c.data.startswith('list_'))
+async def show_member_list(call: types.CallbackQuery):
+    t_id = call.data.split('_')[1]
+    user_id = call.from_user.id
+    
+    # চেক করা হচ্ছে ক্লিককারী কি ওই টিমের লিডার?
+    cursor.execute("SELECT leader_id FROM teams WHERE team_id = ?", (t_id,))
+    leader_res = cursor.fetchone()
+    
+    if not leader_res or leader_res[0] != user_id:
+        await call.answer("❌ শুধুমাত্র টিম লিডার মেম্বার লিস্ট দেখতে পারবেন!", show_alert=True)
+        return
 
+    # মেম্বারদের আইডি খুঁজে বের করা
+    cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
+    members = cursor.fetchall()
+    
+    if not members:
+        await call.message.answer("📝 আপনার টিমে এখনো কোনো মেম্বার জয়েন করেনি।")
+        await call.answer()
+        return
+
+    list_text = "📜 **আপনার টিমের মেম্বার লিস্ট:**\n\n"
+    list_text += f"👑 লিডার: {call.from_user.mention}\n"
+    
+    for index, member in enumerate(members, start=1):
+        try:
+            # টেলিগ্রাম থেকে মেম্বারের তথ্য নেওয়া
+            member_info = await bot.get_chat(member[0])
+            username = f"@{member_info.username}" if member_info.username else member_info.full_name
+            list_text += f"{index}. {username} (ID: `{member[0]}`)\n"
+        except:
+            list_text += f"{index}. Unknown User (ID: `{member[0]}`)\n"
+
+    await call.message.answer(list_text, parse_mode="Markdown")
+    await call.answer()
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
