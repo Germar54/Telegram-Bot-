@@ -1,6 +1,7 @@
+import random
 import logging
 import sqlite3
-import os 
+import os
 from flask import Flask
 from threading import Thread
 from aiogram import Bot, Dispatcher, executor, types
@@ -8,6 +9,8 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
+
+    
 # ==========================================
 # ১. সেটিংস ও ডাটাবেস
 # ==========================================
@@ -44,12 +47,24 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
 db.commit()
-cursor.execute('''CREATE TABLE IF NOT EXISTS users 
-                  (user_id INTEGER PRIMARY KEY, 
-                   username TEXT, 
-                   full_name TEXT, 
-                   balance REAL DEFAULT 0, 
-                   address TEXT)''')
+# ১. ইউজার টেবিল (সবার নাম ও ইউজারনেম সেভ করার জন্য)
+cursor.execute('''CREATE TABLE IF NOT EXISTS users (
+                    user_id INTEGER PRIMARY KEY,
+                    username TEXT,
+                    full_name TEXT)''')
+
+# ২. টিম টেবিল (টিমের নাম ও লিডারের তথ্য সেভ করার জন্য)
+cursor.execute('''CREATE TABLE IF NOT EXISTS teams (
+                    team_id TEXT PRIMARY KEY,
+                    team_name TEXT,
+                    leader_id INTEGER)''')
+
+# ৩. টিম মেম্বার টেবিল (কে কোন টিমে আছে তার লিস্ট)
+cursor.execute('''CREATE TABLE IF NOT EXISTS team_members (
+                    team_id TEXT,
+                    user_id INTEGER,
+                    FOREIGN KEY(team_id) REFERENCES teams(team_id),
+                    FOREIGN KEY(user_id) REFERENCES users(user_id))''')
 db.commit()
 
 
@@ -66,8 +81,7 @@ class BotState(StatesGroup):
     waiting_for_admin_msg = State()
     waiting_for_team_name = State()
     waiting_for_referrer_info = State() # এটি নতুন যোগ করুন
-    waiting_for_team_name = State() 
-    waiting_for_join_team = State()
+    waiting_for_name = State()
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
@@ -89,54 +103,35 @@ def main_menu():
     
     return keyboard
     
-# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
-    await state.finish() 
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
+    await state.finish()
+    
+    user_id = message.from_user.id
+    username = message.from_user.username or "No Username"
+    full_name = message.from_user.full_name
+
+    # ইউজারকে ডাটাবেসে রেজিস্টার করা (মেম্বার লিস্টের জন্য এটি মাস্ট)
+    cursor.execute("""
+        INSERT INTO users (user_id, username, full_name) 
+        VALUES (?, ?, ?) 
+        ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name
+    """, (user_id, username, full_name))
     db.commit()
-    # --- টিম জয়েনিং লজিক (৯৮ নম্বর লাইন থেকে শুরু করুন) ---
+
+    # টিম জয়েনিং লজিক (রেফারেল লিংকে ক্লিক করলে)
     args = message.get_args()
     if args and args.startswith('join_'):
         t_id = args.split('_')[1]
-        try:
-            # চেক করা হচ্ছে ইউজার অলরেডি কোনো টিমে আছে কি না
-            cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (message.from_user.id,))
-            already_member = cursor.fetchone()
-            cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (message.from_user.id,))
-            already_leader = cursor.fetchone()
+        cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (user_id,))
+        if cursor.fetchone():
+            await message.answer("⚠️ আপনি ইতিমধ্যে একটি টিমে আছেন।")
+        else:
+            cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, user_id))
+            db.commit()
+            await message.answer("✅ সফলভাবে টিমে জয়েন করেছেন!")
 
-            if already_member or already_leader:
-                await message.answer("⚠️ আপনি ইতিমধ্যে একটি টিমে আছেন।")
-            else:
-                cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, message.from_user.id))
-                db.commit()
-                await message.answer("✅ অভিনন্দন! আপনি সফলভাবে টিমে জয়েন করেছেন।")
-        except:
-            await message.answer("❌ টিমে জয়েন করতে সমস্যা হয়েছে।")
-    # --- জয়েনিং লজিক শেষ ---
-    
-    # ১. এখানে বাটন তৈরি হচ্ছে
-    inline_kb = types.InlineKeyboardMarkup()
-    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
-    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান 
-    help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
-    inline_kb.add(help_button)
-    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
-        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
-    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
-📌 Instagram 00 Follower (2FA): ২.৩০ ৳
-📌 Instagram Cookies: ৩.৯০ ৳
-📌 Instagram Mother: ৭ ৳
-📌 Facebook FBc00Fnd: ৫.৮০ ৳
-
-  Support: @Dinanhaji"""
-
-    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
-    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
-    
-    # ৪. মেইন মেনু দেখানো
-    await message.answer("✅Instagram 2fa &\n Mother ACCOUNT ↓↓\n 🔥Work Start\n\n🟢 Instagram cookies &\n FB 00 Fnd 2fa↓↓\n🔥WorkStart v2", reply_markup=main_menu())
+    await message.answer(f"👋 স্বাগতম {full_name}!", reply_markup=main_menu())
     
 #============
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
@@ -689,137 +684,88 @@ async def show_only_rules(message: types.Message):
     
     if msg:
         await message.answer(msg, parse_mode="Markdown")
-@dp.message_handler(lambda message: message.text == "🫂 Teamwork")
-async def teamwork_options(message: types.Message):
-    inline_kb = types.InlineKeyboardMarkup(row_width=1)
-    btn_create = types.InlineKeyboardButton("🗣️ Create a Team", callback_data="create_team")
-    btn_my_team = types.InlineKeyboardButton("🧐 My Team", callback_data="my_team")
-    inline_kb.add(btn_create, btn_my_team)
-    
-    await message.answer("👥 **টিম ম্যানেজমেন্ট মেনু**\nনিচের যেকোনো একটি অপশন বেছে নিন:", reply_markup=inline_kb, parse_mode="Markdown")
-    # 'Create Team' বাটনের কলব্যাক
-@dp.callback_query_handler(text="create_team")
-async def ask_team_name(call: types.CallbackQuery):
-    # চেক করা হচ্ছে ইউজারের আগে থেকে কোনো টিম আছে কি না
-    cursor.execute("SELECT team_name FROM teams WHERE leader_id = ?", (call.from_user.id,))
-    existing_team = cursor.fetchone()
-    
-    if existing_team:
-        await call.message.answer(f"❌ আপনার অলরেডি একটি টিম আছে: **{existing_team[0]}**")
-        await call.answer()
-    else:
-        await call.message.answer("📝 আপনার টিমের জন্য একটি সুন্দর নাম দিন:")
-        await BotState.waiting_for_team_name.set()
-        await call.answer()
 
-# নাম রিসিভ করার হ্যান্ডলার
-@dp.message_handler(state=BotState.waiting_for_team_name)
-async def save_team_name(message: types.Message, state: FSMContext):
+
+@dp.message_handler(lambda message: message.text == "🫂 Teamwork")
+async def teamwork_menu(message: types.Message):
+    keyboard = types.InlineKeyboardMarkup(row_width=1)
+    btn1 = types.InlineKeyboardButton("🗣️ Create a Team", callback_data="create_team")
+    btn2 = types.InlineKeyboardButton("🧐 My Team", callback_data="my_team")
+    keyboard.add(btn1, btn2)
+    
+    await message.answer("👥 টিম ম্যানেজমেন্ট মেনু\nনিচের যেকোনো একটি অপশন বেছে নিন:", reply_markup=keyboard)
+    
+@dp.callback_query_handler(lambda c: c.data == 'create_team')
+async def ask_for_team_name(call: types.CallbackQuery):
+    await call.message.answer("📝 আপনার টিমের জন্য একটি নাম লিখুন (যেমন: Cricket King):")
+    await TeamState.waiting_for_name.set()
+@dp.callback_query_handler(lambda c: c.data == 'my_team')
+async def show_my_team(call: types.CallbackQuery):
+    u_id = call.from_user.id
+    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (u_id,))
+    team = cursor.fetchone()
+
+    if team:
+        t_id, t_name = team
+        keyboard = types.InlineKeyboardMarkup(row_width=2)
+        # মেম্বার লিস্ট দেখার বাটন
+        btn_list = types.InlineKeyboardButton("📜 Member List", callback_data=f"list_{t_id}")
+        # মেম্বার অ্যাড করার বাটন (রেফারেল লিংক দিবে)
+        btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
+        # লিভ বা ডিলিট বাটন
+        btn_leave = types.InlineKeyboardButton("🚪 Leave Team", callback_data=f"leave_{t_id}")
+        
+        keyboard.add(btn_list, btn_add, btn_leave)
+        await call.message.answer(f"🏢 টিম: {t_name}\nআইডি: {t_id}", reply_markup=keyboard)
+    else:
+        await call.answer("❌ আপনি কোনো টিমে নেই।", show_alert=True)
+        
+@dp.message_handler(state=TeamState.waiting_for_name)
+async def save_new_team(message: types.Message, state: FSMContext):
     team_name = message.text
     leader_id = message.from_user.id
-    
-    # ডাটাবেসে সেভ করা
-    cursor.execute("INSERT INTO teams (leader_id, team_name) VALUES (?, ?)", (leader_id, team_name))
+    team_id = str(random.randint(1000, 9999))
+
+    cursor.execute("INSERT INTO teams (team_id, team_name, leader_id) VALUES (?, ?, ?)", (team_id, team_name, leader_id))
     db.commit()
     
-    await message.answer(f"✅ অভিনন্দন! আপনার টিম **'{team_name}'** সফলভাবে তৈরি হয়েছে।", reply_markup=main_menu())
     await state.finish()
-@dp.callback_query_handler(text="my_team")
-async def show_my_team(call: types.CallbackQuery):
-    user_id = call.from_user.id
-    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (user_id,))
-    leader_info = cursor.fetchone()
+    await message.answer(f"✅ সফলভাবে '{team_name}' টিম তৈরি হয়েছে!\nআপনার টিম আইডি: `{team_id}`")
+    @dp.callback_query_handler(lambda c: c.data == 'my_team')
+async def my_team_menu(call: types.CallbackQuery):
+    u_id = call.from_user.id
     
-    cursor.execute("SELECT t.team_id, t.team_name FROM teams t JOIN team_members m ON t.team_id = m.team_id WHERE m.user_id = ?", (user_id,))
-    member_info = cursor.fetchone()
+    # ইউজার লিডার নাকি মেম্বার তা ডাটাবেস থেকে চেক
+    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (u_id,))
+    team = cursor.fetchone()
     
-    team_data = leader_info or member_info
-    
-    if team_data:
-        t_id, t_name = team_data
-        cursor.execute("SELECT COUNT(*) FROM team_members WHERE team_id = ?", (t_id,))
-        count = cursor.fetchone()[0]
-        total = count + 1 
-
-        text = f"🧐 **টিম প্রোফাইল**\n\n🏠 নাম: `{t_name}`\n👥 সদস্য: {total} জন"
+    if team:
+        t_id, t_name = team
+        kb = types.InlineKeyboardMarkup(row_width=2)
+        kb.add(types.InlineKeyboardButton("👥 Member List", callback_data=f"list_{t_id}"),
+               types.InlineKeyboardButton("🚪 Leave/Delete", callback_data=f"leave_{t_id}"))
         
-        inline_kb = types.InlineKeyboardMarkup(row_width=2)
-        btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
-        btn_leave = types.InlineKeyboardButton("🚪 Leave/Delete", callback_data=f"leave_{t_id}")
-        btn_list = types.InlineKeyboardButton("📜 Member List", callback_data=f"list_{t_id}")
-        inline_kb.add(btn_add, btn_leave)
-        inline_kb.add(btn_list)
-        
-        await call.message.answer(text, reply_markup=inline_kb, parse_mode="Markdown")
+        await call.message.answer(f"🏢 টিম: {t_name}\nআইডি: `{t_id}`", reply_markup=kb)
     else:
-        await call.message.answer("❌ আপনি কোনো টিমে নেই।")
-    await call.answer()
-    
-@dp.callback_query_handler(lambda c: c.data.startswith('add_'))
-async def add_member_info(call: types.CallbackQuery):
-    t_id = call.data.split('_')[1]
-    # মেম্বার অ্যাড করার জন্য একটি ইনভাইট লিংক তৈরি (বটের ইউজারনেম দিয়ে)
-    bot_info = await bot.get_me()
-    invite_link = f"https://t.me/{bot_info.username}?start=join_{t_id}"
-    
-    await call.message.answer(f"➕ **মেম্বার অ্যাড করার নিয়ম:**\n\n"
-                            f"নিচের লিঙ্কটি আপনার মেম্বারকে পাঠান। সে লিঙ্কে ক্লিক করে 'Start' দিলেই আপনার টিমে যুক্ত হয়ে যাবে:\n\n"
-                            f"`{invite_link}`", parse_mode="Markdown")
-    await call.answer()
+        await call.answer("❌ আপনি কোনো টিমে নেই।", show_alert=True)
 
-@dp.callback_query_handler(lambda c: c.data.startswith('leave_'))
-async def leave_team(call: types.CallbackQuery):
-    user_id = call.from_user.id
-    t_id = call.data.split('_')[1]
-    
-    # চেক: লিডার কি না? লিডার লিভ নিলে টিম ডিলিট হবে
-    cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (user_id,))
-    is_leader = cursor.fetchone()
-    
-    if is_leader:
-        cursor.execute("DELETE FROM teams WHERE team_id = ?", (t_id,))
-        cursor.execute("DELETE FROM team_members WHERE team_id = ?", (t_id,))
-        await call.message.answer("🗑️ আপনার টিমটি ডিলিট করা হয়েছে।")
-    else:
-        cursor.execute("DELETE FROM team_members WHERE team_id = ? AND user_id = ?", (t_id, user_id))
-        await call.message.answer("🚪 আপনি টিম থেকে লিভ নিয়েছেন।")
-    
-    db.commit()
-    await call.answer()
+# মেম্বার লিস্টের ফাইনাল সমাধান
 @dp.callback_query_handler(lambda c: c.data.startswith('list_'))
-async def show_member_list(call: types.CallbackQuery):
-    try:
-        t_id = call.data.split('_')[1]
-        
-        # ডাটাবেস থেকে মেম্বারদের তথ্য আনা (JOIN ব্যবহার করে)
-        cursor.execute("""
-            SELECT u.username, u.full_name 
-            FROM team_members tm 
-            JOIN users u ON tm.user_id = u.user_id 
-            WHERE tm.team_id = ?
-        """, (t_id,))
-        members = cursor.fetchall()
-        
-        list_text = "📜 **টিম মেম্বার লিস্ট:**\n"
-        list_text += "────────────────────\n"
-        
-        if not members:
-            list_text += "টিমে এখনো কোনো মেম্বার নেই অথবা কেউ বটটি স্টার্ট করেনি।"
-        else:
-            for i, (uname, fname) in enumerate(members, 1):
-                display_name = f"@{uname}" if uname and uname != "No Username" else fname
-                list_text += f"{i}. {display_name}\n"
-
-        await call.message.answer(list_text, parse_mode="Markdown")
-        await call.answer()
-    except Exception as e:
-        await call.answer("⚠️ ডাটা লোড করতে সমস্যা হচ্ছে।", show_alert=True)
-            
-
-    except Exception as e:
-        # মেইন এরর হ্যান্ডলিং
-        logging.error(f"Member list error: {e}")
-        await call.answer("⚠️ ডাটা লোড করতে সমস্যা হচ্ছে।", show_alert=True)
+async def show_list(call: types.CallbackQuery):
+    t_id = call.data.split('_')[1]
+    cursor.execute("""
+        SELECT u.username, u.full_name FROM team_members tm 
+        JOIN users u ON tm.user_id = u.user_id WHERE tm.team_id = ?
+    """, (t_id,))
+    members = cursor.fetchall()
+    
+    text = "📜 **মেম্বার লিস্ট:**\n"
+    for i, (uname, fname) in enumerate(members, 1):
+        name = f"@{uname}" if uname != "No Username" else fname
+        text += f"{i}. {name}\n"
+    
+    await call.message.answer(text if members else "টিমে কোনো মেম্বার নেই।")
+    await call.answer()
         
 if __name__ == '__main__':
     keep_alive()
