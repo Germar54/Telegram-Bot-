@@ -44,11 +44,14 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
 db.commit()
-cursor.execute('''CREATE TABLE IF NOT EXISTS teams 
-                  (team_id INTEGER PRIMARY KEY AUTOINCREMENT, leader_id INTEGER, team_name TEXT)''')
-cursor.execute('''CREATE TABLE IF NOT EXISTS team_members 
-                  (team_id INTEGER, user_id INTEGER, PRIMARY KEY(team_id, user_id))''')
+cursor.execute('''CREATE TABLE IF NOT EXISTS users 
+                  (user_id INTEGER PRIMARY KEY, 
+                   username TEXT, 
+                   full_name TEXT, 
+                   balance REAL DEFAULT 0, 
+                   address TEXT)''')
 db.commit()
+
 
 class BotState(StatesGroup):
     waiting_for_file = State()
