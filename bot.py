@@ -89,68 +89,54 @@ def main_menu():
     
     return keyboard
     
+# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
     await state.finish() 
-    
-    # ১. ইউজারের তথ্য ডাটাবেসে সেভ বা আপডেট করা (উপায় ক)
-    user_id = message.from_user.id
-    username = message.from_user.username or "No Username"
-    full_name = message.from_user.full_name
-
-    cursor.execute("""
-        INSERT INTO users (user_id, username, full_name) 
-        VALUES (?, ?, ?) 
-        ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name
-    """, (user_id, username, full_name))
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
-
-    # ২. টিম জয়েনিং লজিক
+    # --- টিম জয়েনিং লজিক (৯৮ নম্বর লাইন থেকে শুরু করুন) ---
     args = message.get_args()
     if args and args.startswith('join_'):
         t_id = args.split('_')[1]
         try:
             # চেক করা হচ্ছে ইউজার অলরেডি কোনো টিমে আছে কি না
-            cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (user_id,))
+            cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (message.from_user.id,))
             already_member = cursor.fetchone()
-            cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (user_id,))
+            cursor.execute("SELECT team_id FROM teams WHERE leader_id = ?", (message.from_user.id,))
             already_leader = cursor.fetchone()
 
             if already_member or already_leader:
                 await message.answer("⚠️ আপনি ইতিমধ্যে একটি টিমে আছেন।")
             else:
-                cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, user_id))
+                cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, message.from_user.id))
                 db.commit()
                 await message.answer("✅ অভিনন্দন! আপনি সফলভাবে টিমে জয়েন করেছেন।")
         except:
             await message.answer("❌ টিমে জয়েন করতে সমস্যা হয়েছে।")
+    # --- জয়েনিং লজিক শেষ ---
     
-    # ৩. সাপোর্ট বাটন তৈরি
-    inline_kb = types.InlineKeyboardMarkup(row_width=2)
+    # ১. এখানে বাটন তৈরি হচ্ছে
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
+    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান 
     help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
     inline_kb.add(help_button)
-
-    # ৪. রেট লিস্ট মেসেজ
-    welcome_text = """📢 **আজকের কাজের আপডেট এবং রেট লিস্ট** 📢
-
+    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
+        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
+    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
 📌 Instagram 00 Follower (2FA): ২.৩০ ৳
 📌 Instagram Cookies: ৩.৯০ ৳
 📌 Instagram Mother: ৭ ৳
 📌 Facebook FBc00Fnd: ৫.৮০ ৳
 
-👨‍💻 Support: @Dinanhaji"""
+  Support: @Dinanhaji"""
 
+    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
     await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
-    # ৫. কাজের স্ট্যাটাস এবং মেইন মেনু দেখানো
-    status_text = (
-        "✅ **Instagram 2fa & Mother ACCOUNT** ↓↓\n"
-        "🔥 Work Start\n\n"
-        "🟢 **Instagram cookies & FB 00 Fnd 2fa** ↓↓\n"
-        "🔥 Work Start v2"
-    )
-    
-    await message.answer(status_text, reply_markup=main_menu(), parse_mode="Markdown")
+    # ৪. মেইন মেনু দেখানো
+    await message.answer("✅Instagram 2fa &\n Mother ACCOUNT ↓↓\n 🔥Work Start\n\n🟢 Instagram cookies &\n FB 00 Fnd 2fa↓↓\n🔥WorkStart v2", reply_markup=main_menu())
     
 #============
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
