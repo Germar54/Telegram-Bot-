@@ -785,44 +785,60 @@ async def leave_team(call: types.CallbackQuery):
     db.commit()
     await call.answer()
 
+# --- সহজ মেম্বার লিস্ট হ্যান্ডলার (সবাই দেখতে পারবে) ---
 @dp.callback_query_handler(lambda c: c.data.startswith('list_'))
 async def show_member_list(call: types.CallbackQuery):
     try:
         t_id = call.data.split('_')[1]
-        user_id = call.from_user.id
         
-        # লিডার চেক
-        cursor.execute("SELECT leader_id FROM teams WHERE team_id = ?", (t_id,))
-        res = cursor.fetchone()
+        # ১. ডাটাবেস থেকে টিমের নাম এবং লিডারের আইডি আনা
+        cursor.execute("SELECT team_name, leader_id FROM teams WHERE team_id = ?", (t_id,))
+        team_info = cursor.fetchone()
         
-        if not res or int(res[0]) != user_id:
-            await call.answer("❌ শুধুমাত্র লিডার এটি দেখতে পারবে!", show_alert=True)
+        if not team_info:
+            await call.answer("❌ টিমটি খুঁজে পাওয়া যায়নি।", show_alert=True)
             return
 
-        # মেম্বারদের লিস্ট আনা
+        t_name, leader_id = team_info
+
+        # ২. মেম্বারদের আইডি খুঁজে বের করা
         cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
         members = cursor.fetchall()
         
-        list_text = "📜 **টিম মেম্বার লিস্ট (Usernames):**\n\n"
-        leader_un = f"@{call.from_user.username}" if call.from_user.username else call.from_user.full_name
-        list_text += f"👑 লিডার: {leader_un}\n────────────────\n"
+        # ৩. লিস্ট সাজানো
+        list_text = f"📜 **টিম: {t_name}**\n"
+        list_text += "────────────────────\n"
         
+        # লিডারের নাম বের করা
+        try:
+            l_info = await bot.get_chat(leader_id)
+            l_name = f"@{l_info.username}" if l_info.username else l_info.full_name
+            list_text += f"👑 লিডার: {l_name}\n"
+        except:
+            list_text += f"👑 লিডার: User_{leader_id}\n"
+            
+        list_text += "────────────────────\n"
+        list_text += "👥 মেম্বার লিস্ট:\n"
+
         if not members:
-            list_text += "টিমে কোনো মেম্বার নেই।"
+            list_text += "এখনো কোনো মেম্বার জয়েন করেনি।"
         else:
-            for i, m in enumerate(members, 1):
+            for index, member in enumerate(members, start=1):
                 try:
-                    m_info = await bot.get_chat(m[0])
-                    m_name = f"@{m_info.username}" if m_info.username else m_info.full_name
-                    list_text += f"{i}. {m_name}\n"
+                    # মেম্বারের ইউজারনেম বের করা
+                    m_info = await bot.get_chat(member[0])
+                    m_username = f"@{m_info.username}" if m_info.username else m_info.full_name
+                    list_text += f"{index}. {m_username}\n"
                 except:
-                    list_text += f"{i}. User (ID: {m[0]})\n"
+                    list_text += f"{index}. User_{member[0]}\n"
 
         await call.message.answer(list_text, parse_mode="Markdown")
         await call.answer()
+
     except Exception as e:
-        await call.answer("⚠️ সমস্যা হয়েছে!", show_alert=True)
-        
+        logging.error(f"Error: {e}")
+        await call.answer("⚠️ সমস্যা হয়েছে, আবার চেষ্টা করুন।")
+    
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
