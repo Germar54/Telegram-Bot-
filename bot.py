@@ -93,20 +93,19 @@ def main_menu():
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
-    await state.finish()
-        # ইউজার ডাটা ডাটাবেসে সেভ/আপডেট
+    await state.finish() 
+    
+    # নিচের লাইনগুলো ফাংশনের ভেতরে (ডানে সরিয়ে) বসানো হয়েছে
     user_id = message.from_user.id
     username = message.from_user.username or "No Username"
     full_name = message.from_user.full_name
 
+    # ইউজারের তথ্য ডাটাবেসে সেভ বা আপডেট করা
     cursor.execute("""
         INSERT INTO users (user_id, username, full_name) 
         VALUES (?, ?, ?) 
         ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name
     """, (user_id, username, full_name))
-    db.commit()
-    
-    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
     # --- টিম জয়েনিং লজিক (৯৮ নম্বর লাইন থেকে শুরু করুন) ---
     args = message.get_args()
