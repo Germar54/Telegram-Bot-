@@ -93,7 +93,19 @@ def main_menu():
 # /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
-    await state.finish() 
+    await state.finish()
+        # ইউজার ডাটা ডাটাবেসে সেভ/আপডেট
+    user_id = message.from_user.id
+    username = message.from_user.username or "No Username"
+    full_name = message.from_user.full_name
+
+    cursor.execute("""
+        INSERT INTO users (user_id, username, full_name) 
+        VALUES (?, ?, ?) 
+        ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name
+    """, (user_id, username, full_name))
+    db.commit()
+    
     cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
     # --- টিম জয়েনিং লজিক (৯৮ নম্বর লাইন থেকে শুরু করুন) ---
@@ -787,57 +799,35 @@ async def leave_team(call: types.CallbackQuery):
     
     db.commit()
     await call.answer()
-
 @dp.callback_query_handler(lambda c: c.data.startswith('list_'))
 async def show_member_list(call: types.CallbackQuery):
     try:
         t_id = call.data.split('_')[1]
         
-        # ১. টিমের তথ্য এবং লিডার আইডি ডাটাবেস থেকে নেওয়া
-        cursor.execute("SELECT team_name, leader_id FROM teams WHERE team_id = ?", (t_id,))
-        team_info = cursor.fetchone()
-        
-        if not team_info:
-            await call.answer("❌ টিমটি খুঁজে পাওয়া যায়নি।", show_alert=True)
-            return
-
-        t_name, leader_id = team_info
-
-        # ২. মেম্বারদের আইডিগুলো ডাটাবেস থেকে আনা
-        cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
+        # ডাটাবেস থেকে মেম্বারদের তথ্য আনা (JOIN ব্যবহার করে)
+        cursor.execute("""
+            SELECT u.username, u.full_name 
+            FROM team_members tm 
+            JOIN users u ON tm.user_id = u.user_id 
+            WHERE tm.team_id = ?
+        """, (t_id,))
         members = cursor.fetchall()
         
-        list_text = f"📜 **টিম: {t_name}**\n"
+        list_text = "📜 **টিম মেম্বার লিস্ট:**\n"
         list_text += "────────────────────\n"
         
-        # ৩. লিডারের নাম বের করা (নিরাপদ উপায়ে)
-        try:
-            l_info = await bot.get_chat(leader_id)
-            l_name = f"@{l_info.username}" if l_info.username else l_info.full_name
-            list_text += f"👑 লিডার: {l_name}\n"
-        except:
-            list_text += f"👑 লিডার: User_{leader_id}\n"
-            
-        list_text += "────────────────────\n"
-        list_text += "👥 মেম্বার লিস্ট:\n"
-
-        # ৪. মেম্বারদের লিস্ট তৈরি করা
         if not members:
-            list_text += "এখনো কোনো মেম্বার জয়েন করেনি।"
+            list_text += "টিমে এখনো কোনো মেম্বার নেই অথবা কেউ বটটি স্টার্ট করেনি।"
         else:
-            for index, member in enumerate(members, start=1):
-                m_id = member[0]
-                try:
-                    # প্রতিটি মেম্বারের জন্য আলাদা try-except যাতে একজনের জন্য সবার লিস্ট আটকে না যায়
-                    m_info = await bot.get_chat(m_id)
-                    m_username = f"@{m_info.username}" if m_info.username else m_info.full_name
-                    list_text += f"{index}. {m_username}\n"
-                except:
-                    # যদি কোনো মেম্বারের তথ্য না পাওয়া যায়, তবে তার আইডি দেখিয়ে দিবে
-                    list_text += f"{index}. User (ID: `{m_id}`)\n"
+            for i, (uname, fname) in enumerate(members, 1):
+                display_name = f"@{uname}" if uname and uname != "No Username" else fname
+                list_text += f"{i}. {display_name}\n"
 
         await call.message.answer(list_text, parse_mode="Markdown")
         await call.answer()
+    except Exception as e:
+        await call.answer("⚠️ ডাটা লোড করতে সমস্যা হচ্ছে।", show_alert=True)
+            
 
     except Exception as e:
         # মেইন এরর হ্যান্ডলিং
