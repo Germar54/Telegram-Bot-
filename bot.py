@@ -46,8 +46,6 @@ cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0'
 db.commit()
 cursor.execute('''CREATE TABLE IF NOT EXISTS teams 
                   (team_id INTEGER PRIMARY KEY AUTOINCREMENT, leader_id INTEGER, team_name TEXT)''')
-db.commit()
-# মেম্বারদের তথ্য রাখার জন্য টেবিল
 cursor.execute('''CREATE TABLE IF NOT EXISTS team_members 
                   (team_id INTEGER, user_id INTEGER, PRIMARY KEY(team_id, user_id))''')
 db.commit()
@@ -727,53 +725,34 @@ async def save_team_name(message: types.Message, state: FSMContext):
 @dp.callback_query_handler(text="my_team")
 async def show_my_team(call: types.CallbackQuery):
     user_id = call.from_user.id
-    
-    # চেক করা হচ্ছে ইউজার কি কোনো টিমের লিডার?
     cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (user_id,))
     leader_info = cursor.fetchone()
     
-    # চেক করা হচ্ছে ইউজার কি কোনো টিমের মেম্বার?
-    cursor.execute("""
-        SELECT t.team_id, t.team_name 
-        FROM teams t 
-        JOIN team_members m ON t.team_id = m.team_id 
-        WHERE m.user_id = ?
-    """, (user_id,))
+    cursor.execute("SELECT t.team_id, t.team_name FROM teams t JOIN team_members m ON t.team_id = m.team_id WHERE m.user_id = ?", (user_id,))
     member_info = cursor.fetchone()
     
-    # লিডার অথবা মেম্বার যেকোনো একটি তথ্য পেলে সেটি ব্যবহার করা হবে
     team_data = leader_info or member_info
     
     if team_data:
         t_id, t_name = team_data
-        
-        # মেম্বার সংখ্যা গণনা (লিডার ১ জন + মেম্বার টেবিলের সংখ্যা)
         cursor.execute("SELECT COUNT(*) FROM team_members WHERE team_id = ?", (t_id,))
-        member_count = cursor.fetchone()[0]
-        total_members = member_count + 1 
+        count = cursor.fetchone()[0]
+        total = count + 1 
 
-        text = (f"🧐 **টিম প্রোফাইল**\n\n"
-                f"🏠 টিমের নাম: `{t_name}`\n"
-                f"👥 মোট সদস্য: {total_members} জন\n"
-                f"📊 স্ট্যাটাস: একটিভ\n\n"
-                f"নিচের বাটন থেকে আপনার মেম্বার ম্যানেজ করুন:")
+        text = f"🧐 **টিম প্রোফাইল**\n\n🏠 নাম: `{t_name}`\n👥 সদস্য: {total} জন"
         
-        # --- ইনলাইন কিবোর্ড সেকশন (আপনার দেওয়া নতুন বাটনসহ) ---
         inline_kb = types.InlineKeyboardMarkup(row_width=2)
         btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
-        btn_leave = types.InlineKeyboardButton("🚪 Leave/Delete Team", callback_data=f"leave_{t_id}")
-        # নতুন বাটন
+        btn_leave = types.InlineKeyboardButton("🚪 Leave/Delete", callback_data=f"leave_{t_id}")
         btn_list = types.InlineKeyboardButton("📜 Member List", callback_data=f"list_{t_id}")
-
         inline_kb.add(btn_add, btn_leave)
-        inline_kb.add(btn_list) # আলাদা লাইনে লিস্ট বাটন
+        inline_kb.add(btn_list)
         
         await call.message.answer(text, reply_markup=inline_kb, parse_mode="Markdown")
     else:
-        await call.message.answer("❌ আপনি কোনো টিমে নেই। একটি টিম তৈরি করুন।")
-    
+        await call.message.answer("❌ আপনি কোনো টিমে নেই।")
     await call.answer()
-        
+    
 @dp.callback_query_handler(lambda c: c.data.startswith('add_'))
 async def add_member_info(call: types.CallbackQuery):
     t_id = call.data.split('_')[1]
@@ -806,54 +785,44 @@ async def leave_team(call: types.CallbackQuery):
     db.commit()
     await call.answer()
 
-    # --- মেম্বার লিস্ট হ্যান্ডলার (ফাইলের একদম শেষে বসাবেন) ---
 @dp.callback_query_handler(lambda c: c.data.startswith('list_'))
 async def show_member_list(call: types.CallbackQuery):
     try:
         t_id = call.data.split('_')[1]
         user_id = call.from_user.id
         
-        # লিডার চেক করা
+        # লিডার চেক
         cursor.execute("SELECT leader_id FROM teams WHERE team_id = ?", (t_id,))
-        leader_res = cursor.fetchone()
+        res = cursor.fetchone()
         
-        if not leader_res or int(leader_res[0]) != user_id:
-            await call.answer("❌ শুধুমাত্র টিম লিডার মেম্বার লিস্ট দেখতে পারবেন!", show_alert=True)
+        if not res or int(res[0]) != user_id:
+            await call.answer("❌ শুধুমাত্র লিডার এটি দেখতে পারবে!", show_alert=True)
             return
 
-        # মেম্বারদের আইডি আনা
+        # মেম্বারদের লিস্ট আনা
         cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
         members = cursor.fetchall()
         
+        list_text = "📜 **টিম মেম্বার লিস্ট (Usernames):**\n\n"
+        leader_un = f"@{call.from_user.username}" if call.from_user.username else call.from_user.full_name
+        list_text += f"👑 লিডার: {leader_un}\n────────────────\n"
+        
         if not members:
-            await call.message.answer("📝 আপনার টিমে এখনো কোনো মেম্বার জয়েন করেনি।")
-            await call.answer()
-            return
-
-        list_text = "📜 **আপনার টিমের মেম্বার লিস্ট:**\n\n"
-        
-        # লিডারের নাম/ইউজারনেম
-        leader_name = f"@{call.from_user.username}" if call.from_user.username else call.from_user.full_name
-        list_text += f"👑 লিডার: {leader_name}\n"
-        list_text += "────────────────────\n"
-        
-        for index, member in enumerate(members, start=1):
-            try:
-                # মেম্বার প্রোফাইল চেক
-                m_info = await bot.get_chat(member[0])
-                m_username = f"@{m_info.username}" if m_info.username else m_info.full_name
-                list_text += f"{index}. {m_username}\n"
-            except:
-                list_text += f"{index}. User (ID: `{member[0]}`)\n"
+            list_text += "টিমে কোনো মেম্বার নেই।"
+        else:
+            for i, m in enumerate(members, 1):
+                try:
+                    m_info = await bot.get_chat(m[0])
+                    m_name = f"@{m_info.username}" if m_info.username else m_info.full_name
+                    list_text += f"{i}. {m_name}\n"
+                except:
+                    list_text += f"{i}. User (ID: {m[0]})\n"
 
         await call.message.answer(list_text, parse_mode="Markdown")
         await call.answer()
-
     except Exception as e:
-        logging.error(f"Member list error: {e}")
-        await call.answer("⚠️ লিস্ট দেখাতে সমস্যা হচ্ছে।", show_alert=True)
-
-                              
+        await call.answer("⚠️ সমস্যা হয়েছে!", show_alert=True)
+        
 if __name__ == '__main__':
     keep_alive()
     executor.start_polling(dp, skip_updates=True)
