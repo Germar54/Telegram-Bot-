@@ -810,20 +810,18 @@ async def leave_team(call: types.CallbackQuery):
 @dp.callback_query_handler(lambda c: c.data.startswith('list_'))
 async def show_member_list(call: types.CallbackQuery):
     try:
-        # কলব্যাক ডাটা থেকে টিম আইডি নেওয়া
         t_id = call.data.split('_')[1]
         user_id = call.from_user.id
         
-        # ডাটাবেস থেকে লিডার আইডি চেক করা
+        # লিডার চেক করা
         cursor.execute("SELECT leader_id FROM teams WHERE team_id = ?", (t_id,))
         leader_res = cursor.fetchone()
         
-        # আইডি ইন্টিজারে রূপান্তর করে চেক করা
         if not leader_res or int(leader_res[0]) != user_id:
             await call.answer("❌ শুধুমাত্র টিম লিডার মেম্বার লিস্ট দেখতে পারবেন!", show_alert=True)
             return
 
-        # মেম্বারদের আইডি ডাটাবেস থেকে আনা
+        # মেম্বারদের আইডি আনা
         cursor.execute("SELECT user_id FROM team_members WHERE team_id = ?", (t_id,))
         members = cursor.fetchall()
         
@@ -834,21 +832,17 @@ async def show_member_list(call: types.CallbackQuery):
 
         list_text = "📜 **আপনার টিমের মেম্বার লিস্ট:**\n\n"
         
-        # লিডারের ইউজারনেম
-        leader_un = f"@{call.from_user.username}" if call.from_user.username else call.from_user.full_name
-        list_text += f"👑 লিডার: {leader_un}\n"
+        # লিডারের নাম/ইউজারনেম
+        leader_name = f"@{call.from_user.username}" if call.from_user.username else call.from_user.full_name
+        list_text += f"👑 লিডার: {leader_name}\n"
         list_text += "────────────────────\n"
         
         for index, member in enumerate(members, start=1):
             try:
-                # টেলিগ্রাম সার্ভার থেকে মেম্বার প্রোফাইল চেক করা
+                # মেম্বার প্রোফাইল চেক
                 m_info = await bot.get_chat(member[0])
-                if m_info.username:
-                    m_name = f"@{m_info.username}"
-                else:
-                    m_name = m_info.full_name # ইউজারনেম না থাকলে নাম
-                
-                list_text += f"{index}. {m_name}\n"
+                m_username = f"@{m_info.username}" if m_info.username else m_info.full_name
+                list_text += f"{index}. {m_username}\n"
             except:
                 list_text += f"{index}. User (ID: `{member[0]}`)\n"
 
@@ -856,8 +850,9 @@ async def show_member_list(call: types.CallbackQuery):
         await call.answer()
 
     except Exception as e:
-        logging.error(f"Error in member list: {e}")
+        logging.error(f"Member list error: {e}")
         await call.answer("⚠️ লিস্ট দেখাতে সমস্যা হচ্ছে।", show_alert=True)
+
                               
 if __name__ == '__main__':
     keep_alive()
