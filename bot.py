@@ -1,7 +1,6 @@
-import random
 import logging
 import sqlite3
-import os
+import os 
 from flask import Flask
 from threading import Thread
 from aiogram import Bot, Dispatcher, executor, types
@@ -9,8 +8,6 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
 
-
-    
 # ==========================================
 # ১. সেটিংস ও ডাটাবেস
 # ==========================================
@@ -47,32 +44,14 @@ cursor.execute('''CREATE TABLE IF NOT EXISTS users
 db.commit()
 cursor.execute('''ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0''')
 db.commit()
-# ১. ইউজার টেবিল (সবার নাম ও ইউজারনেম সেভ করার জন্য)
-cursor.execute('''CREATE TABLE IF NOT EXISTS users (
-                    user_id INTEGER PRIMARY KEY,
-                    username TEXT,
-                    full_name TEXT)''')
-
-# ২. টিম টেবিল (টিমের নাম ও লিডারের তথ্য সেভ করার জন্য)
-cursor.execute('''CREATE TABLE IF NOT EXISTS teams (
-                    team_id TEXT PRIMARY KEY,
-                    team_name TEXT,
-                    leader_id INTEGER)''')
-
-# ৩. টিম মেম্বার টেবিল (কে কোন টিমে আছে তার লিস্ট)
-cursor.execute('''CREATE TABLE IF NOT EXISTS team_members (
-                    team_id TEXT,
-                    user_id INTEGER,
-                    FOREIGN KEY(team_id) REFERENCES teams(team_id),
-                    FOREIGN KEY(user_id) REFERENCES users(user_id))''')
-db.commit()
-
 
 class BotState(StatesGroup):
     waiting_for_file = State()
     waiting_for_address = State()
     waiting_for_withdraw_amount = State()
     waiting_for_add_money = State()
+    waiting_for_add_money = State()
+    # নিচে এই ৩টি লাইন লিখে দিন
     waiting_for_single_user = State()
     waiting_for_single_pass = State()
     waiting_for_single_2fa = State()
@@ -81,59 +60,51 @@ class BotState(StatesGroup):
     waiting_for_admin_msg = State()
     waiting_for_team_name = State()
     waiting_for_referrer_info = State() # এটি নতুন যোগ করুন
-    waiting_for_name = State()
+    
 async def is_blocked(user_id):
     cursor.execute("SELECT user_id FROM blacklist WHERE user_id=?", (user_id,))
     return cursor.fetchone() is not None
 
 def main_menu():
     keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    
-    # প্রথম সারি: দুই ধরণের কাজের বাটন একসাথে
+    # প্রথম সারি: দুই ধরণের কাজের বাটন
     keyboard.row("Work start 🔥", "🔥Work Start v2")
-    
-    # দ্বিতীয় সারি: রেফারেল এবং উইথড্র একসাথে
-    keyboard.row("👥 Referral", "Withdraw")
-    
+    # দ্বিতীয় সারি: টাকা তোলা এবং রেফারেল
+    keyboard.row("Withdraw", "👥 Referral")
     # তৃতীয় সারি: সাপোর্ট এবং রুলস
     keyboard.row("🧑‍💻Support", "🔴Rules & Price")
-    
-    # চতুর্থ সারি: আপনার নতুন টিমওয়ার্ক বাটন
-    keyboard.row("🫂 Teamwork")
-    
     return keyboard
     
+# /start কমান্ডে মেইন মেনু ও ফ্রী ফায়ার বাটন
 @dp.message_handler(commands=['start'], state="*")
 async def start(message: types.Message, state: FSMContext):
-    await state.finish()
-    
-    user_id = message.from_user.id
-    username = message.from_user.username or "No Username"
-    full_name = message.from_user.full_name
-
-    # ইউজারকে ডাটাবেসে রেজিস্টার করা (মেম্বার লিস্টের জন্য এটি মাস্ট)
-    cursor.execute("""
-        INSERT INTO users (user_id, username, full_name) 
-        VALUES (?, ?, ?) 
-        ON CONFLICT(user_id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name
-    """, (user_id, username, full_name))
+    await state.finish() 
+    cursor.execute("INSERT OR IGNORE INTO users (user_id) VALUES (?)", (message.from_user.id,))
     db.commit()
 
-    # টিম জয়েনিং লজিক (রেফারেল লিংকে ক্লিক করলে)
-    args = message.get_args()
-    if args and args.startswith('join_'):
-        t_id = args.split('_')[1]
-        cursor.execute("SELECT team_id FROM team_members WHERE user_id = ?", (user_id,))
-        if cursor.fetchone():
-            await message.answer("⚠️ আপনি ইতিমধ্যে একটি টিমে আছেন।")
-        else:
-            cursor.execute("INSERT INTO team_members (team_id, user_id) VALUES (?, ?)", (t_id, user_id))
-            db.commit()
-            await message.answer("✅ সফলভাবে টিমে জয়েন করেছেন!")
+    # ১. এখানে বাটন তৈরি হচ্ছে
+    inline_kb = types.InlineKeyboardMarkup()
+    inline_kb = types.InlineKeyboardMarkup(row_width=2) # row_width=1
+    # নিচের লাইনে 'url' এর জায়গায় আপনার গ্রুপের লিংক বসান 
+    help_button = types.InlineKeyboardButton(text="🆘 Contact Support", url="https://t.me/instafbhub_support") 
+    inline_kb.add(help_button)
+    # ২. এখানে আপনার মেসেজটি লিখুন (লাইন ব্রেক বা ইন্টার দিতে \n ব্যবহার করুন)
+        # ২. এখানে আপনার বড় মেসেজটি (রেট লিস্ট) বসাবেন
+    welcome_text = """📢 আজকের কাজের আপডেট এবং রেট লিস্ট 📢
+📌 Instagram 00 Follower (2FA): ২.৩০ ৳
+📌 Instagram Cookies: ৩.৯০ ৳
+📌 Instagram Mother: ৭ ৳
+📌 Facebook FBc00Fnd: ৫.৮০ ৳
 
-    await message.answer(f"👋 স্বাগতম {full_name}!", reply_markup=main_menu())
+  Support: @Dinanhaji"""
+
+    # ৩. মেসেজ পাঠানো (বাটনসহ এবং parse_mode যোগ করে)
+    await message.answer(welcome_text, reply_markup=inline_kb, parse_mode="Markdown")
     
-#============
+    # ৪. মেইন মেনু দেখানো
+    await message.answer("✅Instagram 2fa &\n Mother ACCOUNT ↓↓\n 🔥Work Start\n\n🟢 Instagram cookies &\n FB 00 Fnd 2fa↓↓\n🔥WorkStart v2", reply_markup=main_menu())
+    
+# =========================================
 @dp.message_handler(lambda message: message.text in ["IG Mother Account", "IG 2fa"])
 async def ask_work_type(message: types.Message, state: FSMContext):
     # এই লাইনগুলো বাম দিক থেকে ৪টি স্পেস ডানে থাকবে
@@ -272,7 +243,7 @@ async def handle_file(message: types.Message, state: FSMContext):
 # ==========================================
 # ৩. উইথড্র ও পেমেন্ট মেথড চেঞ্জ লজিক
 # ==========================================
-@dp.message_handler(lambda message: message.text == "💵Withdraw")
+@dp.message_handler(lambda message: message.text == "Withdraw")
 async def withdraw_process(message: types.Message):
     cursor.execute("SELECT balance, address FROM users WHERE user_id=?", (message.from_user.id,))
     res = cursor.fetchone()
@@ -430,343 +401,4 @@ async def admin_block(message: types.Message, state: FSMContext):
         
     except:
         await message.answer("⚠️ সঠিক ফরম্যাট: `/block ইউজার_আইডি` লিখুন।")
-        
 
-# ২. কমান্ড দিয়ে আনব্লক করা: /unblock 12345678
-@dp.message_handler(commands=['unblock'], user_id=ADMIN_ID)
-async def admin_unblock(message: types.Message):
-    try:
-        uid = int(message.get_args())
-        cursor.execute("DELETE FROM blacklist WHERE user_id=?", (uid,))
-        db.commit()
-        await message.answer(f"✅ ইউজার `{uid}` এখন আনব্লক।")
-        await bot.send_message(uid, "✅ আপনাকে আনব্লক করা হয়েছে।\nআর ভুল করবেন না❌")
-        
-    except: await message.answer("সঠিক ফরম্যাট: `/unblock আইডি`")
-@dp.callback_query_handler(lambda c: c.data.startswith('block_'), user_id=ADMIN_ID)
-async def block_callback(call: types.CallbackQuery, state: FSMContext):
-    uid = int(call.data.split('_')[1])
-    # ডাটাবেসে ব্লক করা
-    cursor.execute("INSERT OR IGNORE INTO blacklist (user_id) VALUES (?)", (uid,))
-    db.commit()
-    
-    # ইউজার আইডি সেভ রাখা
-    await state.update_data(blocking_user_id=uid)
-    
-    await call.message.answer(f"🚫 ইউজার `{uid}` ব্লকড।\nএখন ব্লক করার কারণটি লিখে পাঠান:")
-    await BotState.waiting_for_block_reason.set()
-    await call.answer()
-    
-@dp.message_handler(state=BotState.waiting_for_block_reason, user_id=ADMIN_ID)
-async def send_block_reason(message: types.Message, state: FSMContext):
-    # সেভ করা আইডিটি ফিরিয়ে আনা
-    data = await state.get_data()
-    uid = data.get('blocking_user_id')
-    reason = message.text # আপনি যা লিখে পাঠাবেন
-    
-    try:
-        # ইউজারের কাছে কারণসহ মেসেজ পাঠানো
-        msg_text = f"❌ আপনাকে বট থেকে ব্লক করা হয়েছে।\n📝 কারণ: {reason}"
-        await bot.send_message(uid, msg_text)
-        await message.answer(f"✅ ইউজার `{uid}` কে কারণসহ ব্লক মেসেজ পাঠানো হয়েছে।")
-    except:
-        await message.answer(f"⚠️ ইউজার `{uid}` কে মেসেজ পাঠানো যায়নি।")
-# ১. রেফারেল বাটনে ক্লিক করলে ডাটাবেস থেকে আসল সংখ্যা দেখাবে
-@dp.message_handler(lambda message: message.text == "👥 Referral")
-async def referral_command(message: types.Message):
-    user_id = message.from_user.id
-    
-    # ডাটাবেস থেকে ইউজারের রেফারেল সংখ্যা খুঁজে আনা
-    cursor.execute("SELECT referral_count FROM users WHERE user_id = ?", (user_id,))
-    res = cursor.fetchone()
-    
-    # যদি ডাটাবেসে তথ্য না থাকে তবে ০ দেখাবে
-    ref_count = res[0] if res and res[0] is not None else 0
-    
-    bot_info = await bot.get_me()
-    refer_link = f"https://t.me/{bot_info.username}?start={user_id}"
-    
-    # আপনার স্ক্রিনশটের ডিজাইন অনুযায়ী মেসেজ
-    text = (f"👥 **আপনার মোট রেফারেল:** {ref_count} জন\n"
-            f"🔗 **আপনার লিঙ্ক:** `{refer_link}`\n\n"
-            f".......📮**Attention**.......\n\n"
-            f"🔴 প্রত্যেক রেফারের জন্য ৫ টাকা পাবেন।\n"
-            f"🚨 👀 ওই টাকা তখনই পাবেন যখন ওই ইউজার ৫০ টাকার উপরে ব্যালেন্স করবে।\n"
-            f"🔥 আপনি কার মাধ্যমে এই বটে এসেছেন?\n\n\n"
-            f"💣 তার Username অথবা User ID লিখে নিচে পাঠান\n...↓↓↓↓নইতো /start দিন")
-    
-    await message.answer(text, parse_mode="Markdown")
-    # ইউজারের ইনপুট নেওয়ার জন্য স্টেট সেট করা
-    await BotState.waiting_for_referrer_info.set()
-
-# ২. ইউজার যখন রেফারারের তথ্য লিখে পাঠাবে (ইনপুট হ্যান্ডলার)
-@dp.message_handler(state=BotState.waiting_for_referrer_info)
-async def process_referral_info(message: types.Message, state: FSMContext):
-    referrer_detail = message.text # ইউজার যা লিখে পাঠাবে বট তা গ্রহণ করবে
-    sender_name = message.from_user.full_name
-    sender_id = message.from_user.id
-    
-    # অ্যাডমিনকে নোটিফিকেশন পাঠানো
-    admin_msg = (f"📢 **নতুন রেফারেল রিপোর্ট!**\n\n"
-                 f"👤 **প্রেরক:** {sender_name}\n"
-                 f"🆔 **আইডি:** `{sender_id}`\n"
-                 f"━━━━━━━━━━━━━━━\n"
-                 f"📝 **যার মাধ্যমে এসেছে:** {referrer_detail}")
-    
-    try:
-        await bot.send_message(ADMIN_ID, admin_msg, parse_mode="Markdown")
-    except:
-        pass
-        
-    success_text = ("🚨 এক আইডি দিয়ে বার বার রেফার করলে আপনাকে\n এবং ওই আইডিকে টেলিগ্রাম থেকে ব্লক করা হবে!\n\n"
-                    "🟢 আপনার রেফারেল রিসিভ করা হয়েছে।\n"
-                    "👌 ধন্যবাদ")
-    
-    await message.answer(success_text, reply_markup=main_menu())
-    await state.finish()
-@dp.message_handler(commands=['edit_ref'], user_id=ADMIN_ID)
-async def admin_edit_referral(message: types.Message):
-    try:
-        args = message.get_args().split()
-        if len(args) < 2:
-            return await message.answer("⚠️ ফরম্যাট: `/edit_ref আইডি সংখ্যা`")
-        
-        target_id, new_count = int(args[0]), int(args[1])
-        cursor.execute("UPDATE users SET referral_count = ? WHERE user_id = ?", (new_count, target_id))
-        db.commit()
-        
-        await message.answer(f"✅ ইউজার `{target_id}` এর রেফারেল সংখ্যা আপডেট করে `{new_count}` করা হয়েছে।")
-        try:
-            await bot.send_message(target_id, f"📢 আপনার মোট রেফারেল সংখ্যা আপডেট করা হয়েছে।\nবর্তমান রেফারেল: {new_count} জন।")
-        except: pass
-    except:
-        await message.answer("❌ ভুল আইডি বা সংখ্যা।")
-    # 'Support' বাটনে ক্লিক করলে যা শো করবে (হাইপারলিঙ্ক সহ)
-@dp.message_handler(lambda message: message.text == "🧑‍💻Support")
-async def support_message(message: types.Message):
-    # এখানে [শব্দ](লিঙ্ক) এই ফরম্যাটে হাইপারলিঙ্ক সেট করা হয়েছে
-    text = (
-        "👋 **হ্যালো! আমাদের সাপোর্ট সেন্টারে আপনাকে স্বাগতম।**\n\n"
-        "যেকোনো সমস্যা বা তথ্যের জন্য নিচে ক্লিক করুন:\n\n"
-        "🎥 **Bot Setup:** [VIDEO](ht)\n"
-        "📢 **আপডেট গ্রুপ:** [Join Channel](https://t.me/instafbhub)\n"
-        "🛠 **হেল্প সাপোর্ট:** [Contact Support](https://t.me/INSTAFB_SUPPORT)\n\n"
-        "✅আমরা আপনাকে দ্রুত সাহায্য করার চেষ্টা করব। ধন্যবাদ!"
-    )
-    
-    # parse_mode="Markdown" অবশ্যই থাকতে হবে নাহলে লিঙ্ক কাজ করবে না
-    await message.answer(text, parse_mode="Markdown", disable_web_page_preview=True)
-
-# ১. মেনু বাটন ফাংশন (নিশ্চিত করুন নামটি সঠিক)
-def work_v2_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("FB 00 Fnd 2fa", "IG Cookies") 
-    keyboard.add("🔄 রিফ্রেশ") 
-    return keyboard
-
-# ২. মেইন বাটন হ্যান্ডলার (v2 ওপেন করার জন্য)
-@dp.message_handler(lambda message: "Work Start v2" in message.text or message.text == "🔥Work Start v2")
-async def work_v2_handler(message: types.Message):
-    text = (
-        "🔴 **আপনার কাজের ক্যাটাগরি বেছে নিন:**\n"
-        "👍 যেকোনো সমস্যায়: @Dinanhaji !"
-    )
-    await message.answer(text, reply_markup=work_v2_menu(), parse_mode="Markdown")
-
-# ৩. ক্যাটাগরি সিলেক্ট করার হ্যান্ডলার
-# ৩. ক্যাটাগরি সিলেক্ট করার হ্যান্ডলার
-@dp.message_handler(lambda message: message.text in ["FB 00 Fnd 2fa", "IG Cookies"])
-async def work_v2_options(message: types.Message, state: FSMContext):
-    await state.update_data(category=message.text)
-    
-    # ইনলাইন কিবোর্ড তৈরি (row_width সেট করা হয়েছে যাতে বাটনগুলো সাজানো থাকে)
-    inline_kb = types.InlineKeyboardMarkup(row_width=2)
-    
-    # সাধারণ ফাইল এবং সিঙ্গেল আইডি বাটন
-    btn_file = types.InlineKeyboardButton("📁 File", callback_data="type_file")
-    btn_single = types.InlineKeyboardButton("🆔 Single ID", callback_data="type_single")
-    
-    # শর্ত: শুধুমাত্র IG Cookies হলে নতুন বাটনটি যোগ হবে
-    if message.text == "IG Cookies":
-        # এখানে 'your_link' এর জায়গায় আপনার আসল টেলিগ্রাম লিংক দিন
-        btn_submit_link = types.InlineKeyboardButton("🔗 Submit Link", url="https://t.me/instafbhub/80")
-        inline_kb.add(btn_file, btn_single) # প্রথম সারিতে দুই বাটন
-        inline_kb.add(btn_submit_link)      # তার নিচে বড় সাবমিট বাটন
-    else:
-        inline_kb.add(btn_file, btn_single) # অন্য ক্যাটাগরিতে শুধু এই দুটি থাকবে
-    
-    msg_text = (
-        f"✅ আপনি বেছে নিয়েছেন: **{message.text}**\n"
-        "━━━━━━━━━━━━━━━\n"
-        "এখন কিভাবে ডাটা জমা দিতে চান? নিচের বাটন থেকে সিলেক্ট করুন।"
-    )
-    
-    await message.answer(msg_text, reply_markup=inline_kb, parse_mode="Markdown")
-                      
-#মেসেজ
-@dp.message_handler(commands=['msg'], user_id=ADMIN_ID)
-async def admin_direct_msg(message: types.Message):
-    try:
-        # কমান্ড থেকে আইডি এবং মেসেজ আলাদা করা
-        args = message.get_args().split(maxsplit=1)
-        if len(args) < 2:
-            return await message.answer("⚠️ সঠিক ফরম্যাট: `/msg আইডি মেসেজ`")
-        
-        target_id = int(args[0])
-        text_to_send = args[1]
-        
-        # ইউজারের কাছে মেসেজ পাঠানো
-        await bot.send_message(target_id, f"📩 **অ্যাডমিনের কাছ থেকে মেসেজ:**\n\n{text_to_send}")
-        await message.answer(f"✅ ইউজার `{target_id}` কে মেসেজ পাঠানো হয়েছে।")
-        
-    except Exception as e:
-        await message.answer(f"❌ মেসেজ পাঠানো যায়নি। ভুল আইডি বা ইউজার বটটি ব্লক করে রেখেছে।")
-
-
-# --- ১. কিবোর্ড ফাংশন (এটি লাইনের শুরুতে থাকবে) ---
-def rules_price_menu():
-    keyboard = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    keyboard.add("IG 2fa Rules", "IG Cookies Rules")
-    keyboard.add("Ig mother account Rules", "Fb 00 fnd 2fa Rules")
-    keyboard.add("🔄 রিফ্রেশ") 
-    return keyboard
-
-# --- ২. মেইন বাটন হ্যান্ডলার ---
-@dp.message_handler(lambda message: message.text == "🔴Rules & Price")
-async def rules_price_handler(message: types.Message):
-    await message.answer(
-        "👉 যে ক্যাটাগরির নিয়ম এবং রেট জানতে চান,\n\n👇 নিচের বাটন থেকে সেটি সিলেক্ট করুন:",
-        reply_markup=rules_price_menu()
-    )
-
-# --- ৩. রুলস মেসেজ হ্যান্ডলার ---
-@dp.message_handler(lambda message: message.text in ["IG 2fa Rules", "IG Cookies Rules", "Ig mother account Rules", "Fb 00 fnd 2fa Rules"])
-async def show_only_rules(message: types.Message):
-    category = message.text
-    msg = ""
-    
-    if category == "IG 2fa Rules":
-        msg = (
-            "📌 **পয়েন্ট ১: 📸 Instagram 00 Follower (2FA)**\n\n"
-            "💸 প্রাইস: ২.৩০ টাকা (১০০+ হলে ২.৫০ টাকা)\n\n"
-            "⚠️ নিয়ম: 🚫 Resell ID Not Allowed.\n\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n\n"             
-            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ০৮:১৫ মিনিট।\n\n"
-            "⏳ **রিপোর্ট টাইম: ১২ ঘণ্টা।**"
-        )
-    elif category == "IG Cookies Rules":
-        msg = (
-            "📌 **পয়েন্ট ২: 📸 Instagram Cookies 00 Follower**\n\n"
-            "💸 প্রাইস: ৩.৯০ টাকা (৪.১০ টাকা)\n\n"
-            "⚠️ নিয়ম: ⚡ আইডি করার সাথে সাথে সাবমিট দিতে হবে।\n\n"
-            "📄 শীট ফরম্যাট: **User-pass**\n\n"
-            "⏰ ফাইল সাবমিট লাস্ট টাইম: সকাল ১০:৩০ মিনিট।\n\n"
-            "⏳ **রিপোর্ট টাইম: ৪ ঘণ্টা।**"
-        )
-    elif category == "Ig mother account Rules":
-        msg = (
-            "📌 **পয়েন্ট ৩: 📸 Instagram Mother Account (2FA)**\n\n"
-            "💸 প্রাইস: ৮ টাকা (৫০+ হলে ৯ টাকা)\n\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n\n"
-            "⚠️ নিয়ম: ❗ একটি নাম্বার দিয়ে একটি আইডিই খুলতে হবে।\n\n"
-            "⏰ লাস্ট টাইম: যেকোনো সময় (Anytime)。\n\n"
-            "⏳ **রিপোর্ট টাইম: ১ ঘণ্টা।**"
-        )
-    elif category == "Fb 00 fnd 2fa Rules":
-        msg = (
-            "📌 **পয়েন্ট ৪: 🔵 Facebook (FB00Fnd 2fa)**\n\n"
-            "💸 প্রাইস: ৫.৮০ টাকা (৫০+ হলে ৬ টাকা)\n\n"
-            "📄 শীট ফরম্যাট: User-pass-2fa\n\n"
-            "⚠️ নিয়ম: ❌ পাসওয়ার্ডের শেষে তারিখ দেওয়া যাবে না।\n\n"
-            "⏰ আইডি সাবমিট লাস্ট টাইম: রাত ১০:০০ মিনিট।\n\n"
-            "⏳ **রিপোর্ট টাইম: ৫ ঘণ্টা।**"
-        )
-    
-    if msg:
-        await message.answer(msg, parse_mode="Markdown")
-
-
-@dp.message_handler(lambda message: message.text == "🫂 Teamwork")
-async def teamwork_menu(message: types.Message):
-    keyboard = types.InlineKeyboardMarkup(row_width=1)
-    btn1 = types.InlineKeyboardButton("🗣️ Create a Team", callback_data="create_team")
-    btn2 = types.InlineKeyboardButton("🧐 My Team", callback_data="my_team")
-    keyboard.add(btn1, btn2)
-    
-    await message.answer("👥 টিম ম্যানেজমেন্ট মেনু\nনিচের যেকোনো একটি অপশন বেছে নিন:", reply_markup=keyboard)
-    
-@dp.callback_query_handler(lambda c: c.data == 'create_team')
-async def ask_for_team_name(call: types.CallbackQuery):
-    await call.message.answer("📝 আপনার টিমের জন্য একটি নাম লিখুন (যেমন: Cricket King):")
-    await TeamState.waiting_for_name.set()
-@dp.callback_query_handler(lambda c: c.data == 'my_team')
-async def show_my_team(call: types.CallbackQuery):
-    u_id = call.from_user.id
-    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (u_id,))
-    team = cursor.fetchone()
-
-    if team:
-        t_id, t_name = team
-        keyboard = types.InlineKeyboardMarkup(row_width=2)
-        # মেম্বার লিস্ট দেখার বাটন
-        btn_list = types.InlineKeyboardButton("📜 Member List", callback_data=f"list_{t_id}")
-        # মেম্বার অ্যাড করার বাটন (রেফারেল লিংক দিবে)
-        btn_add = types.InlineKeyboardButton("➕ Add Member", callback_data=f"add_{t_id}")
-        # লিভ বা ডিলিট বাটন
-        btn_leave = types.InlineKeyboardButton("🚪 Leave Team", callback_data=f"leave_{t_id}")
-        
-        keyboard.add(btn_list, btn_add, btn_leave)
-        await call.message.answer(f"🏢 টিম: {t_name}\nআইডি: {t_id}", reply_markup=keyboard)
-    else:
-        await call.answer("❌ আপনি কোনো টিমে নেই।", show_alert=True)
-        
-@dp.message_handler(state=TeamState.waiting_for_name)
-async def save_new_team(message: types.Message, state: FSMContext):
-    team_name = message.text
-    leader_id = message.from_user.id
-    team_id = str(random.randint(1000, 9999))
-
-    cursor.execute("INSERT INTO teams (team_id, team_name, leader_id) VALUES (?, ?, ?)", (team_id, team_name, leader_id))
-    db.commit()
-    
-    await state.finish()
-    await message.answer(f"✅ সফলভাবে '{team_name}' টিম তৈরি হয়েছে!\nআপনার টিম আইডি: `{team_id}`")
-    @dp.callback_query_handler(lambda c: c.data == 'my_team')
-async def my_team_menu(call: types.CallbackQuery):
-    u_id = call.from_user.id
-    
-    # ইউজার লিডার নাকি মেম্বার তা ডাটাবেস থেকে চেক
-    cursor.execute("SELECT team_id, team_name FROM teams WHERE leader_id = ?", (u_id,))
-    team = cursor.fetchone()
-    
-    if team:
-        t_id, t_name = team
-        kb = types.InlineKeyboardMarkup(row_width=2)
-        kb.add(types.InlineKeyboardButton("👥 Member List", callback_data=f"list_{t_id}"),
-               types.InlineKeyboardButton("🚪 Leave/Delete", callback_data=f"leave_{t_id}"))
-        
-        await call.message.answer(f"🏢 টিম: {t_name}\nআইডি: `{t_id}`", reply_markup=kb)
-    else:
-        await call.answer("❌ আপনি কোনো টিমে নেই।", show_alert=True)
-
-# মেম্বার লিস্টের ফাইনাল সমাধান
-@dp.callback_query_handler(lambda c: c.data.startswith('list_'))
-async def show_list(call: types.CallbackQuery):
-    t_id = call.data.split('_')[1]
-    cursor.execute("""
-        SELECT u.username, u.full_name FROM team_members tm 
-        JOIN users u ON tm.user_id = u.user_id WHERE tm.team_id = ?
-    """, (t_id,))
-    members = cursor.fetchall()
-    
-    text = "📜 **মেম্বার লিস্ট:**\n"
-    for i, (uname, fname) in enumerate(members, 1):
-        name = f"@{uname}" if uname != "No Username" else fname
-        text += f"{i}. {name}\n"
-    
-    await call.message.answer(text if members else "টিমে কোনো মেম্বার নেই।")
-    await call.answer()
-        
-if __name__ == '__main__':
-    keep_alive()
-    executor.start_polling(dp, skip_updates=True)
